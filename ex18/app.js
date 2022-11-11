@@ -1,8 +1,13 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../../libs/utils.js";
 import { ortho, lookAt, flatten } from "../../libs/MV.js";
-import {modelView, loadMatrix, multRotationY, multScale } from "../../libs/stack.js";
+import {modelView, loadMatrix, multRotationY, multRotationX, multRotationZ, multTranslation, multScale, pushMatrix, popMatrix  } from "../../libs/stack.js";
 
 import * as SPHERE from '../../libs/objects/sphere.js';
+import * as CUBE from '../../libs/objects/cube.js';
+import * as CYLINDER from '../../libs/objects/cylinder.js';
+import * as PYRAMID from '../../libs/objects/pyramid.js';
+import * as TORUS from '../../libs/objects/torus.js';
+import { rotateY } from "../libs/MV.js";
 
 /** @type WebGLRenderingContext */
 let gl;
@@ -12,33 +17,18 @@ let speed = 1/60.0;     // Speed (how many days added to time on each render pas
 let mode;               // Drawing mode (gl.LINES or gl.TRIANGLES)
 let animation = true;   // Animation is running
 
-const PLANET_SCALE = 10;    // scale that will apply to each planet and satellite
+const HELICOPTER_SCALE = 10;    // scale that will apply to each planet and satellite
 const ORBIT_SCALE = 1/60;   // scale that will apply to each orbit around the sun
 
-const SUN_DIAMETER = 1391900;
-const SUN_DAY = 24.47; // At the equator. The poles are slower as the sun is gaseous
+const HELICOPTER_LENGHT = 10 * HELICOPTER_SCALE;
+const TRAJECTORY_RADIUS = 30;
 
-const MERCURY_DIAMETER = 4866*PLANET_SCALE;
-const MERCURY_ORBIT = 57950000*ORBIT_SCALE;
-const MERCURY_YEAR = 87.97;
-const MERCURY_DAY = 58.646;
+const BLADE_LENGTH = 4 * HELICOPTER_SCALE;
 
-const VENUS_DIAMETER = 12106*PLANET_SCALE;
-const VENUS_ORBIT = 108110000*ORBIT_SCALE;
-const VENUS_YEAR = 224.70;
-const VENUS_DAY = 243.018;
+const ROTOR_RADIUS = 0.5 * HELICOPTER_SCALE;
+const ROTOR_SPEED = 60;
 
-const EARTH_DIAMETER = 12742*PLANET_SCALE;
-const EARTH_ORBIT = 149570000*ORBIT_SCALE;
-const EARTH_YEAR = 365.26;
-const EARTH_DAY = 0.99726968;
-
-const MOON_DIAMETER = 3474*PLANET_SCALE;
-const MOON_ORBIT = 363396*ORBIT_SCALE;
-const MOON_YEAR = 28;
-const MOON_DAY = 0;
-
-const VP_DISTANCE = EARTH_ORBIT;
+const VP_DISTANCE = 30;
 
 
 
@@ -80,6 +70,7 @@ function setup(shaders)
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     SPHERE.init(gl);
+    CYLINDER.init(gl);
     gl.enable(gl.DEPTH_TEST);   // Enables Z-buffer depth test
     
     window.requestAnimationFrame(render);
@@ -101,11 +92,44 @@ function setup(shaders)
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(modelView()));
     }
 
-    function Sun()
+    function blade() {
+        multScale([BLADE_LENGTH, 1.5, 1.5]);
+        uploadModelView();
+        SPHERE.draw(gl, program, mode);
+    }
+
+    function rotor() {
+        pushMatrix();
+            multScale([ROTOR_RADIUS, ROTOR_RADIUS, ROTOR_RADIUS]);
+            uploadModelView();
+            CYLINDER.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multRotationY(time*ROTOR_SPEED);
+            pushMatrix();
+                multRotationY(360/3);
+                multTranslation([BLADE_LENGTH/2, 0, 0]);
+                blade();
+            popMatrix();
+            pushMatrix();
+                multRotationY(360*2/3);
+                multTranslation([BLADE_LENGTH/2, 0, 0]);
+                blade();
+            popMatrix();
+            pushMatrix();
+                multRotationY(360*3/3);
+                multTranslation([BLADE_LENGTH/2, 0, 0]);
+                blade();
+            popMatrix();
+        popMatrix
+
+    }
+
+    function helicopter()
     {
         // Don't forget to scale the sun, rotate it around the y axis at the correct speed
-        multScale([SUN_DIAMETER, SUN_DIAMETER, SUN_DIAMETER]);
-        multRotationY(360*time/SUN_DAY);
+        multScale([HELICOPTER_LENGHT/4, HELICOPTER_LENGHT/4, HELICOPTER_LENGHT/2]);
+        multRotationY(360*time/TRAJECTORY_RADIUS);
 
         // Send the current modelview matrix to the vertex shader
         uploadModelView();
@@ -125,9 +149,9 @@ function setup(shaders)
         
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
     
-        loadMatrix(lookAt([0,VP_DISTANCE,VP_DISTANCE], [0,0,0], [0,1,0]));
+        loadMatrix(lookAt([0,VP_DISTANCE/2,VP_DISTANCE], [0,0,0], [0,1,0]));
 
-        Sun();
+        rotor();
     }
 }
 
