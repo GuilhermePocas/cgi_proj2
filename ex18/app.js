@@ -1,5 +1,6 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../../libs/utils.js";
-import { ortho, lookAt, flatten } from "../../libs/MV.js";
+import { ortho, lookAt, flatten, mult } from "../../libs/MV.js";
+import { GUI } from "../libs/dat.gui.module.js";
 import {modelView, loadMatrix, multRotationY, multRotationX, multRotationZ, multTranslation, multScale, pushMatrix, popMatrix  } from "../../libs/stack.js";
 
 import * as SPHERE from '../../libs/objects/sphere.js';
@@ -23,12 +24,23 @@ const ORBIT_SCALE = 1/60;   // scale that will apply to each orbit around the su
 const HELICOPTER_LENGHT = 10 * HELICOPTER_SCALE;
 const TRAJECTORY_RADIUS = 30;
 
-const BLADE_LENGTH = 4 * HELICOPTER_SCALE;
+const BLADE_LENGTH = 3 * HELICOPTER_SCALE;
+const BLADE_WIDTH = 0.4 * HELICOPTER_SCALE;
 
-const ROTOR_RADIUS = 0.5 * HELICOPTER_SCALE;
+const ROTOR_RADIUS = 0.25 * HELICOPTER_SCALE;
 const ROTOR_SPEED = 60;
 
-const VP_DISTANCE = 30;
+const TAIL_ROTOR_SCALE = 0.01 * HELICOPTER_SCALE;
+
+const TAIL_LENGTH = 5 * HELICOPTER_SCALE;
+
+const TAIL_TIP_LENGTH = 0.5 * HELICOPTER_SCALE;
+
+const VP_DISTANCE = 10;
+var camera = { x:0, y:0, z:0};
+
+const gui = new GUI();
+gui.add(camera, "x", 0, 100, 0.1).name("X");
 
 
 
@@ -49,6 +61,7 @@ function setup(shaders)
     window.addEventListener("resize", resize_canvas);
 
     document.onkeydown = function(event) {
+        console.log(event.key);
         switch(event.key) {
             case 'w':
                 mode = gl.LINES; 
@@ -93,11 +106,33 @@ function setup(shaders)
     }
 
     function blade() {
-        multScale([BLADE_LENGTH, 1.5, 1.5]);
+        multScale([BLADE_LENGTH, 1, BLADE_WIDTH]);
         uploadModelView();
         SPHERE.draw(gl, program, mode);
     }
 
+    function tailRotor() {
+        multScale([TAIL_ROTOR_SCALE, TAIL_ROTOR_SCALE, TAIL_ROTOR_SCALE]);
+        pushMatrix();
+            multScale([ROTOR_RADIUS, ROTOR_RADIUS, ROTOR_RADIUS]);
+            uploadModelView();
+            CYLINDER.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multRotationY(time*ROTOR_SPEED);
+            pushMatrix();
+                multRotationY(360);
+                multTranslation([BLADE_LENGTH/2, 0, 0]);
+                blade();
+            popMatrix();
+            pushMatrix();
+                multRotationY(360/2);
+                multTranslation([BLADE_LENGTH/2, 0, 0]);
+                blade();
+            popMatrix();
+        popMatrix();
+
+    }
     function rotor() {
         pushMatrix();
             multScale([ROTOR_RADIUS, ROTOR_RADIUS, ROTOR_RADIUS]);
@@ -121,7 +156,31 @@ function setup(shaders)
                 multTranslation([BLADE_LENGTH/2, 0, 0]);
                 blade();
             popMatrix();
-        popMatrix
+        popMatrix();
+
+    }
+
+    function tailTip() {
+        pushMatrix();
+            multScale([1, TAIL_TIP_LENGTH, 1]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([1, 0, 0])
+            multRotationX(90);
+            tailRotor();
+        popMatrix();
+    }
+
+    function tail() {
+        multScale(0, 2, 0)
+        uploadModelView();
+        SPHERE.draw(gl, program, mode);
+    }
+
+    function helicopterBody() {
+
 
     }
 
@@ -149,9 +208,10 @@ function setup(shaders)
         
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
     
-        loadMatrix(lookAt([0,VP_DISTANCE/2,VP_DISTANCE], [0,0,0], [0,1,0]));
+        loadMatrix(lookAt([camera.x,VP_DISTANCE/2,VP_DISTANCE], [0,0,0], [0,1,0]));
 
-        rotor();
+
+        tailTip();
     }
 }
 
