@@ -24,18 +24,28 @@ const ORBIT_SCALE = 1/60;   // scale that will apply to each orbit around the su
 const HELICOPTER_LENGHT = 10;
 const TRAJECTORY_RADIUS = 30;
 
-const BLADE_LENGTH = 80;
+const BLADE_LENGTH = 50;
 const BLADE_WIDTH = 5;
 
 const ROTOR_RADIUS = 0.08;
-const ROTOR_HEIGHT = 0.8;
+const ROTOR_HEIGHT = 0.5;
 const ROTOR_SPEED = 60;
 
-const TAIL_ROTOR_SCALE = 0.01;
+const TAIL_TIP_LENGTH = 1;
+const TAIL_TIP_HEIGHT = 0.5;
+const TAIL_TIP_WIDTH = 0.5;
 
 const TAIL_LENGTH = 5;
+const TAIL_HEIGHT = 0.5;
+const TAIL_WIDTH = 0.5;
 
-const TAIL_TIP_LENGTH = 0.5;
+const SUPPORT_BEAM_LENGTH = 1.1;
+const SUPPORT_BEAM_HEIGHT = 0.15;
+const SUPPORT_BEAM_WIDTH = 0.15;
+
+const BODY_LENGHT = 5;
+const BODY_HEIGHT = 2;
+const BODY_WIDTH = 1.5;
 
 const VP_DISTANCE = 10;
 var camera = { x:0, y:0, z:0, scale:1};
@@ -86,6 +96,7 @@ function setup(shaders)
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     SPHERE.init(gl);
     CYLINDER.init(gl);
+    CUBE.init(gl);
     gl.enable(gl.DEPTH_TEST);   // Enables Z-buffer depth test
     
     window.requestAnimationFrame(render);
@@ -108,7 +119,7 @@ function setup(shaders)
     }
 
     function blade() {
-        multScale([BLADE_LENGTH, 0.3, BLADE_WIDTH]);
+        multScale([BLADE_LENGTH, 0.1, BLADE_WIDTH]);
         uploadModelView();
         SPHERE.draw(gl, program, mode);
     }
@@ -116,81 +127,128 @@ function setup(shaders)
     function rotor() {
         pushMatrix();
             multScale([ROTOR_RADIUS, ROTOR_HEIGHT, ROTOR_RADIUS]);
-            multTranslation([5, 1.6, 0]);
             multRotationY(time*ROTOR_SPEED);
             uploadModelView();
             CYLINDER.draw(gl, program, mode);
             pushMatrix();
                 multRotationY(360/3);
-                multTranslation([BLADE_LENGTH/2, 0.2, 0]);
+                multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
                 blade();
             popMatrix();
             pushMatrix();
                 multRotationY(360*2/3);
-                multTranslation([BLADE_LENGTH/2, 0.2, 0]);
+                multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
                 blade();
             popMatrix();
             pushMatrix();
                 multRotationY(360*3/3);
-                multTranslation([BLADE_LENGTH/2, 0.2, 0]);
+                multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
                 blade();
             popMatrix();
         popMatrix();
     }
 
     function tailRotor() {
-        multScale([TAIL_ROTOR_SCALE, TAIL_ROTOR_SCALE, TAIL_ROTOR_SCALE]);
-        multRotationY(time*ROTOR_SPEED);
         pushMatrix();
-            multScale([ROTOR_RADIUS, ROTOR_RADIUS, ROTOR_RADIUS]);
+            multScale([ROTOR_RADIUS, ROTOR_HEIGHT/2, ROTOR_RADIUS]);
+            multRotationY(time*ROTOR_SPEED);
             uploadModelView();
             CYLINDER.draw(gl, program, mode);
-        popMatrix();
-        pushMatrix();
             pushMatrix();
-                multRotationY(360);
-                multTranslation([BLADE_LENGTH/2, 0, 0]);
-                blade();
-            popMatrix();
-            pushMatrix();
-                multRotationY(360/2);
-                multTranslation([BLADE_LENGTH/2, 0, 0]);
-                blade();
+                pushMatrix();
+                    multScale([1/6, 1, 1/3]);
+                    multRotationY(360);
+                    multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
+                    blade();
+                popMatrix();
+                pushMatrix();
+                    multScale([1/6, 1, 1/3]);
+                    multRotationY(360/2);
+                    multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
+                    blade();
+                popMatrix();
             popMatrix();
         popMatrix();
     }
 
     function tailTip() {
         pushMatrix();
-            multScale([1, TAIL_TIP_LENGTH, 1]);
+            multScale([TAIL_TIP_LENGTH, TAIL_TIP_HEIGHT, TAIL_TIP_WIDTH]);
             uploadModelView();
             SPHERE.draw(gl, program, mode);
         popMatrix();
         pushMatrix();
-            multTranslation([1, 0, 0])
+            multTranslation([0, 0, TAIL_TIP_WIDTH/2]);
             multRotationX(90);
             tailRotor();
         popMatrix();
     }
 
     function tail() {
-        multScale([1, 2, 1]);
-        multTranslation([3, 0, 0]);
-        uploadModelView();
-        SPHERE.draw(gl, program, mode);
-        tailTip();
+        pushMatrix();
+            pushMatrix();
+                multScale([TAIL_LENGTH, TAIL_HEIGHT, TAIL_WIDTH]);
+                uploadModelView();
+                SPHERE.draw(gl, program, mode);
+            popMatrix();
+            pushMatrix();
+                multTranslation([TAIL_LENGTH/2, TAIL_HEIGHT*(2/3), 0]);
+                multRotationZ(65);
+                tailTip();
+            popMatrix();
+        popMatrix();
+    }
+
+    function supportBeam() {
+        pushMatrix();
+            multScale([SUPPORT_BEAM_LENGTH, SUPPORT_BEAM_HEIGHT, SUPPORT_BEAM_WIDTH]);
+            uploadModelView();
+            CUBE.draw(gl, program, mode);
+        popMatrix();
+    }
+
+    function landingGear() {
+        pushMatrix();
+            pushMatrix();
+                multTranslation([-BODY_LENGHT/6, -BODY_HEIGHT/2, BODY_WIDTH/3]);
+                multRotationZ(55);
+                multRotationY(20);
+                supportBeam();
+            popMatrix();
+            pushMatrix();
+                multTranslation([-BODY_LENGHT/6, -BODY_HEIGHT/2, -BODY_WIDTH/3]);
+                multRotationZ(55);
+                multRotationY(-20);
+                supportBeam();
+            popMatrix();
+            pushMatrix();
+                multTranslation([BODY_LENGHT/6, -BODY_HEIGHT/2, BODY_WIDTH/3]);
+                multRotationZ(-55);
+                multRotationY(-20);
+                supportBeam();
+            popMatrix();
+            pushMatrix();
+                multTranslation([BODY_LENGHT/6, -BODY_HEIGHT/2, -BODY_WIDTH/3]);
+                multRotationZ(-55);
+                multRotationY(20);
+                supportBeam();
+            popMatrix();
+        popMatrix();
     }
 
     function helicopterBody() {
         pushMatrix();
-            multScale([5, 2, 2])
-            uploadModelView();
-            SPHERE.draw(gl, program, mode);
-            multScale([1/5, 1/2, 1/2])
             pushMatrix();
+                multScale([BODY_LENGHT, BODY_HEIGHT, BODY_WIDTH]);
+                uploadModelView();
+                SPHERE.draw(gl, program, mode);
+            popMatrix();
+            pushMatrix();
+                multTranslation([TAIL_LENGTH*(3/4), BODY_HEIGHT/8, 0]);
                 tail();
             popMatrix();
             pushMatrix();
+                multTranslation([BODY_LENGHT*(1/14), BODY_HEIGHT/2, 0]);
                 rotor();
             popMatrix();
             pushMatrix();
@@ -229,7 +287,7 @@ function setup(shaders)
             vec4(0, 0, 0, 1));
         
     
-        loadMatrix(lookAt([camera.x, camera.y, camera.z], [0, 0, 0]/*[camera.x, camera.y, camera.z]*/, [0,1,0]));
+        loadMatrix(lookAt([camera.x, camera.y, camera.z], [0, 0, 0], [0,1,0]));
 
         uploadModelView();
         
