@@ -1,5 +1,5 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../../libs/utils.js";
-import { ortho, lookAt, flatten, mult } from "../../libs/MV.js";
+import { ortho, lookAt, flatten, mult, mat4, vec4 } from "../../libs/MV.js";
 import { GUI } from "../libs/dat.gui.module.js";
 import {modelView, loadMatrix, multRotationY, multRotationX, multRotationZ, multTranslation, multScale, pushMatrix, popMatrix  } from "../../libs/stack.js";
 
@@ -40,7 +40,7 @@ const VP_DISTANCE = 10;
 var camera = { x:0, y:0, z:0};
 
 const gui = new GUI();
-gui.add(camera, "x", 0, 100, 0.1).name("X");
+gui.add(camera, "x", 0, 4*Math.PI, 0.1).name("X");
 
 
 
@@ -207,11 +207,18 @@ function setup(shaders)
         gl.useProgram(program);
         
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
+
+        var transformMatrix = mat4(
+            vec4(Math.cos(camera.x), 0, 0, 0),
+            vec4(0, 1, 0, 0),
+            vec4(0, 0, Math.sin(camera.x), 0),
+            vec4(0, 0, 0, 1));
     
-        loadMatrix(lookAt([camera.x,VP_DISTANCE/2,VP_DISTANCE], [0,0,0], [0,1,0]));
+        loadMatrix(mult(transformMatrix ,lookAt([0, VP_DISTANCE/2, VP_DISTANCE], [0,0,0], [0,1,0])));
 
-
-        tailTip();
+        uploadModelView();
+        CYLINDER.draw(gl, program, mode);
+        //tailTip();
     }
 }
 
