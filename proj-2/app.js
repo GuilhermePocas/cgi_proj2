@@ -1,5 +1,5 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../libs/utils.js";
-import { ortho, lookAt, flatten, mult, mat4, vec4, inverse } from "../libs/MV.js";
+import { ortho, lookAt, flatten, mult, mat4, vec4, vec3, inverse } from "../libs/MV.js";
 import { GUI } from "../libs/dat.gui.module.js";
 import {modelView, loadMatrix, multRotationY, multRotationX, multRotationZ, multTranslation, multScale, pushMatrix, popMatrix  } from "../libs/stack.js";
 
@@ -45,13 +45,12 @@ const TAIL_LENGTH = 5;
 const TAIL_HEIGHT = 0.5;
 const TAIL_WIDTH = 0.5;
 
-const SUPPORT_BEAM_LENGTH = 1.3;
+const SUPPORT_BEAM_LENGTH = 1.2;
 const SUPPORT_BEAM_HEIGHT = 0.15;
 const SUPPORT_BEAM_WIDTH = 0.15;
 
-const GROUND_SUPPORT_LENGTH = 4;
-const GROUND_SUPPORT_HEIGHT = 0.15;
-const GROUND_SUPPORT_WIDTH = 0.15;
+const LANDING_BEAM_LENGTH = 4;
+const LANDING_BEAM_RADIUS = 0.30;
 
 const BODY_LENGHT = 5;
 const BODY_HEIGHT = 2;
@@ -239,10 +238,10 @@ function setup(shaders)
     function supportBeam() {
         updateColor(BEAM_COLOR);
         pushMatrix();
-            multScale([LANDING_BEAM_LENGTH, LANDING_BEAM_RADIUS, LANDING_BEAM_RADIUS]);
+            multScale([SUPPORT_BEAM_LENGTH, SUPPORT_BEAM_HEIGHT, SUPPORT_BEAM_WIDTH]);
             multRotationZ(90);
             uploadModelView();
-            CYLINDER.draw(gl, program, mode);
+            CUBE.draw(gl, program, mode);
         popMatrix();
     }
 
@@ -259,13 +258,13 @@ function setup(shaders)
     function landingStructure() {
         pushMatrix()
             pushMatrix();
-                multTranslation([-LANDING_BEAM_LENGTH/5, SUPPORT_BEAM_LENGTH/3, -SUPPORT_BEAM_WIDTH]);
+                multTranslation([-LANDING_BEAM_LENGTH/5, SUPPORT_BEAM_LENGTH*(3/8), -SUPPORT_BEAM_WIDTH]);
                 multRotationZ(55);
                 multRotationY(20);
                 supportBeam();
             popMatrix();
             pushMatrix();
-                multTranslation([LANDING_BEAM_LENGTH/5, SUPPORT_BEAM_LENGTH/3, -SUPPORT_BEAM_WIDTH]);
+                multTranslation([LANDING_BEAM_LENGTH/5, SUPPORT_BEAM_LENGTH*(3/8), -SUPPORT_BEAM_WIDTH]);
                 multRotationZ(-55);
                 multRotationY(-20);
                 supportBeam();
@@ -331,9 +330,6 @@ function setup(shaders)
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         
         gl.useProgram(program);
-
-        //const uColor = gl.getUniformLocation(program, "uColor");
-        //gl.uniform3fv(uColor, currColor);
         
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
 
