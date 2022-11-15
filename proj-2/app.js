@@ -315,7 +315,7 @@ function setup(shaders)
     function helicopter()
     {
         pushMatrix();
-            multScale([camera.scale, camera.scale, camera.scale]);
+            multScale([helicopter_settings.scale, helicopter_settings.scale, helicopter_settings.scale]);
             uploadModelView();
             helicopterBody();
         popMatrix();
