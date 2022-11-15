@@ -1,5 +1,5 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../libs/utils.js";
-import { ortho, lookAt, flatten, mult, mat4, vec4, inverse } from "../libs/MV.js";
+import { ortho, lookAt, flatten, mult, mat4, vec4, inverse, normalize, rotateX, rotateZ } from "../libs/MV.js";
 import { GUI } from "../libs/dat.gui.module.js";
 import {modelView, loadMatrix, multRotationY, multRotationX, multRotationZ, multTranslation, multScale, pushMatrix, popMatrix  } from "../libs/stack.js";
 
@@ -17,6 +17,7 @@ let time = 0;           // Global simulation time in days
 let speed = 1/60.0;     // Speed (how many days added to time on each render pass
 let mode;               // Drawing mode (gl.LINES or gl.TRIANGLES)
 let animation = true;   // Animation is running
+
 
 const HELICOPTER_SCALE = 1;    // scale that will apply to each planet and satellite
 const ORBIT_SCALE = 1/60;   // scale that will apply to each orbit around the sun
@@ -39,22 +40,35 @@ const TAIL_LENGTH = 5;
 const TAIL_HEIGHT = 0.5;
 const TAIL_WIDTH = 0.5;
 
-const SUPPORT_BEAM_LENGTH = 1.1;
+const SUPPORT_BEAM_LENGTH = 1.3;
 const SUPPORT_BEAM_HEIGHT = 0.15;
 const SUPPORT_BEAM_WIDTH = 0.15;
+
+const GROUND_SUPPORT_LENGTH = 4;
+const GROUND_SUPPORT_HEIGHT = 0.15;
+const GROUND_SUPPORT_WIDTH = 0.15;
 
 const BODY_LENGHT = 5;
 const BODY_HEIGHT = 2;
 const BODY_WIDTH = 1.5;
 
 const VP_DISTANCE = 10;
-var camera = { x:0, y:0, z:0, scale:1};
+var camera = { x:1, y:1, z:1, scale:1};
+var world = {scale: 1};
+var helicopter_settings = {scale: 1};
 
 const gui = new GUI();
 gui.add(camera, "x", -10, 10, 0.1).name("X");
 gui.add(camera, "y", -10, 10, 0.1).name("Y");
 gui.add(camera, "z", -10, 10, 0.1).name("Z");
-gui.add(camera, "scale", 0, 5, 0.1).name("Scale");
+gui.add(world, "scale", 0, 5, 0.1).name("World Scale");
+gui.add(helicopter_settings, "scale", 0, 5, 0.1).name("Helicopter Scale");
+
+let axometricView = lookAt([camera.x,camera.y,camera.z], [0, 0, 0], [0, 1, 0]);
+let frontView = lookAt([-1,0,0], [0, 0, 0], [0, 1, 0]);
+let upView = lookAt([0,1,0], [0, 0, 0], [0, 0, 1]);
+let rigthView = lookAt([0,0,1], [0, 0, 0], [0, 1, 0]);
+let currentview = axometricView;
 
 function setup(shaders)
 {
@@ -89,6 +103,18 @@ function setup(shaders)
                 break;
             case '-':
                 if(animation) speed /= 1.1;
+                break;
+            case '1':
+                currentview = axometricView;
+                break;
+            case '2':
+                currentview = frontView;
+                break;
+            case '3':
+                currentview = upView;
+                break;
+            case '4':
+                currentview = rigthView;
                 break;
         }
     }
@@ -200,11 +226,15 @@ function setup(shaders)
     }
 
     function supportBeam() {
-        pushMatrix();
-            multScale([SUPPORT_BEAM_LENGTH, SUPPORT_BEAM_HEIGHT, SUPPORT_BEAM_WIDTH]);
-            uploadModelView();
-            CUBE.draw(gl, program, mode);
-        popMatrix();
+        multScale([SUPPORT_BEAM_LENGTH, SUPPORT_BEAM_HEIGHT, SUPPORT_BEAM_WIDTH]);
+        uploadModelView();
+        CUBE.draw(gl, program, mode);
+    }
+
+    function groundSupport(){
+        multScale([GROUND_SUPPORT_LENGTH, GROUND_SUPPORT_HEIGHT, GROUND_SUPPORT_WIDTH]);
+        uploadModelView();
+        CUBE.draw(gl, program, mode);
     }
 
     function landingGear() {
@@ -233,6 +263,14 @@ function setup(shaders)
                 multRotationY(20);
                 supportBeam();
             popMatrix();
+            pushMatrix();
+                multTranslation([BODY_LENGHT/500, -BODY_HEIGHT/1.35, -BODY_WIDTH/2.1]);
+                groundSupport();
+            popMatrix();
+            pushMatrix();
+            multTranslation([BODY_LENGHT/500, -BODY_HEIGHT/1.35, BODY_WIDTH/2.1]);
+                groundSupport();
+            popMatrix();
         popMatrix();
     }
 
@@ -260,7 +298,7 @@ function setup(shaders)
     function helicopter()
     {
         // Don't forget to scale the sun, rotate it around the y axis at the correct speed
-        multScale([camera.scale, camera.scale, camera.scale]);
+        multScale([helicopter_settings.scale, helicopter_settings.scale, helicopter_settings.scale]);
         //multRotationY(360*time/TRAJECTORY_RADIUS);
 
         // Send the current modelview matrix to the vertex shader
@@ -281,15 +319,18 @@ function setup(shaders)
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
 
         var transformMatrix = mat4(
-            vec4(Math.cos(camera.x), 0, 0, 0),
+            vec4(1, 0, 0, 0),
             vec4(0, 1, 0, 0),
-            vec4(0, 0, Math.sin(camera.x), 0),
+            vec4(0, 0, 0, 0),
             vec4(0, 0, 0, 1));
         
-    
-        loadMatrix(lookAt([camera.x, camera.y, camera.z], [0, 0, 0], [0,1,0]));
+        //loadMatrix(mult(transformMatrix, rotateY(90)));
+        axometricView = lookAt([camera.x,camera.y,camera.z], [0, 0, 0], [0, 1, 0]);
+        loadMatrix(currentview);
 
         uploadModelView();
+
+        multScale([world.scale, world.scale, world.scale]);
         
         pushMatrix();
             //floor();
