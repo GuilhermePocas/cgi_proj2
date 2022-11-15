@@ -19,9 +19,6 @@ let mode;               // Drawing mode (gl.LINES or gl.TRIANGLES)
 let animation = true;   // Animation is running
 
 
-const HELICOPTER_SCALE = 1;    // scale that will apply to each planet and satellite
-const ORBIT_SCALE = 1/60;   // scale that will apply to each orbit around the sun
-
 const HELICOPTER_LENGHT = 10;
 const TRAJECTORY_RADIUS = 30;
 
@@ -29,6 +26,7 @@ const BODY_COLOR = vec3(207/255, 25/255, 25/255);
 const BLADE_COLOR = vec3(17/255, 203/255, 240/255);
 const CYLINDER_COLOR = vec3(227/255, 182/255, 20/255);
 const BEAM_COLOR = vec3(133/255, 133/255, 133/255);
+const FLOOR_COLOR = vec3(71/255, 133/255, 46/255);
 
 const BLADE_LENGTH = 50;
 const BLADE_WIDTH = 5;
@@ -56,7 +54,10 @@ const BODY_LENGHT = 5;
 const BODY_HEIGHT = 2;
 const BODY_WIDTH = 1.5;
 
-const VP_DISTANCE = 10;
+const FLOOR_SIZE = 100;
+const FLOOR_HEIGHT = 5;
+
+const VP_DISTANCE = 100;
 var currColor = vec3(0,0,0);
 var camera = { x:1, y:1, z:1, scale:1};
 var world = {scale: 1};
@@ -74,6 +75,7 @@ let frontView = lookAt([-1,0,0], [0, 0, 0], [0, 1, 0]);
 let upView = lookAt([0,1,0], [0, 0, 0], [0, 0, 1]);
 let rigthView = lookAt([0,0,1], [0, 0, 0], [0, 1, 0]);
 let currentview = axometricView;
+let isAxometric = true;
 
 function setup(shaders)
 {
@@ -111,15 +113,19 @@ function setup(shaders)
                 break;
             case '1':
                 currentview = axometricView;
+                isAxometric = true;
                 break;
             case '2':
                 currentview = frontView;
+                isAxometric = false;
                 break;
             case '3':
                 currentview = upView;
+                isAxometric = false;
                 break;
             case '4':
                 currentview = rigthView;
+                isAxometric = false;
                 break;
         }
     }
@@ -322,6 +328,15 @@ function setup(shaders)
 
     }
 
+    function floor() {
+        pushMatrix();
+            updateColor(FLOOR_COLOR);
+            multScale([FLOOR_SIZE, FLOOR_HEIGHT, FLOOR_SIZE]);
+            uploadModelView();
+            CUBE.draw(gl, program, mode);
+        popMatrix();
+    }
+
     function render()
     {
         if(animation) time += speed;
@@ -341,6 +356,7 @@ function setup(shaders)
         
         //loadMatrix(mult(transformMatrix, rotateY(90)));
         axometricView = lookAt([camera.x,camera.y,camera.z], [0, 0, 0], [0, 1, 0]);
+        if(isAxometric) currentview = axometricView;
         loadMatrix(currentview);
 
         uploadModelView();
@@ -348,9 +364,10 @@ function setup(shaders)
         multScale([world.scale, world.scale, world.scale]);
         
         pushMatrix();
-            //floor();
+            floor();
         popMatrix();
         pushMatrix();
+            multTranslation([0, FLOOR_HEIGHT, 0]);
             helicopter();
         popMatrix();
     }
