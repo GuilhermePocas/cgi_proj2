@@ -237,6 +237,24 @@ function setup(shaders)
         CUBE.draw(gl, program, mode);
     }
 
+    function landingBeam() {
+        pushMatrix();
+            multScale([LANDING_BEAM_LENGTH, LANDING_BEAM_RADIUS, LANDING_BEAM_RADIUS]);
+            multRotationZ(90);
+            uploadModelView();
+            CYLINDER.draw(gl, program, mode);
+        popMatrix();
+    }
+
+    function landingBeam() {
+        pushMatrix();
+            multScale([LANDING_BEAM_LENGTH, LANDING_BEAM_RADIUS, LANDING_BEAM_RADIUS]);
+            multRotationZ(90);
+            uploadModelView();
+            CYLINDER.draw(gl, program, mode);
+        popMatrix();
+    }
+
     function landingGear() {
         pushMatrix();
             pushMatrix();
