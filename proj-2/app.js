@@ -1,5 +1,5 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../libs/utils.js";
-import { ortho, lookAt, flatten, mult, mat4, vec4, inverse } from "../libs/MV.js";
+import { ortho, lookAt, flatten, mult, mat4, vec4, inverse, vec3} from "../libs/MV.js";
 import { GUI } from "../libs/dat.gui.module.js";
 import {modelView, loadMatrix, multRotationY, multRotationX, multRotationZ, multTranslation, multScale, pushMatrix, popMatrix  } from "../libs/stack.js";
 
@@ -23,6 +23,11 @@ const ORBIT_SCALE = 1/60;   // scale that will apply to each orbit around the su
 
 const HELICOPTER_LENGHT = 10;
 const TRAJECTORY_RADIUS = 30;
+
+const BODY_COLOR = vec3(207/255, 25/255, 25/255);
+const BLADE_COLOR = vec3(17/255, 203/255, 240/255);
+const CYLINDER_COLOR = vec3(227/255, 182/255, 20/255);
+const BEAM_COLOR = vec3(133/255, 133/255, 133/255);
 
 const BLADE_LENGTH = 50;
 const BLADE_WIDTH = 5;
@@ -51,6 +56,7 @@ const BODY_HEIGHT = 2;
 const BODY_WIDTH = 1.5;
 
 const VP_DISTANCE = 10;
+var currColor = vec3(0,0,0);
 var camera = { x:0, y:0, z:0, scale:1};
 
 const gui = new GUI();
@@ -122,6 +128,7 @@ function setup(shaders)
     }
 
     function blade() {
+        updateColor(BLADE_COLOR);
         multScale([BLADE_LENGTH, 0.1, BLADE_WIDTH]);
         uploadModelView();
         SPHERE.draw(gl, program, mode);
@@ -129,6 +136,7 @@ function setup(shaders)
 
     function rotor() {
         pushMatrix();
+            updateColor(CYLINDER_COLOR);
             multScale([ROTOR_RADIUS, ROTOR_HEIGHT, ROTOR_RADIUS]);
             multRotationY(time*ROTOR_SPEED);
             uploadModelView();
@@ -153,6 +161,7 @@ function setup(shaders)
 
     function tailRotor() {
         pushMatrix();
+            updateColor(CYLINDER_COLOR);
             multScale([ROTOR_RADIUS, ROTOR_HEIGHT/2, ROTOR_RADIUS]);
             multRotationY(time*ROTOR_SPEED);
             uploadModelView();
@@ -176,6 +185,7 @@ function setup(shaders)
 
     function tailTip() {
         pushMatrix();
+            updateColor(BODY_COLOR);
             multScale([TAIL_TIP_LENGTH, TAIL_TIP_HEIGHT, TAIL_TIP_WIDTH]);
             uploadModelView();
             SPHERE.draw(gl, program, mode);
@@ -190,6 +200,7 @@ function setup(shaders)
     function tail() {
         pushMatrix();
             pushMatrix();
+                updateColor(BODY_COLOR);
                 multScale([TAIL_LENGTH, TAIL_HEIGHT, TAIL_WIDTH]);
                 uploadModelView();
                 SPHERE.draw(gl, program, mode);
@@ -203,6 +214,7 @@ function setup(shaders)
     }
 
     function supportBeam() {
+        updateColor(BEAM_COLOR);
         pushMatrix();
             multScale([SUPPORT_BEAM_LENGTH, SUPPORT_BEAM_HEIGHT, SUPPORT_BEAM_WIDTH]);
             uploadModelView();
@@ -211,6 +223,7 @@ function setup(shaders)
     }
 
     function landingBeam() {
+        updateColor(CYLINDER_COLOR);
         pushMatrix();
             multScale([LANDING_BEAM_LENGTH, LANDING_BEAM_RADIUS, LANDING_BEAM_RADIUS]);
             multRotationZ(90);
@@ -219,46 +232,45 @@ function setup(shaders)
         popMatrix();
     }
 
-    function landingGear() {
-        pushMatrix();
+    function landingStructure() {
+        pushMatrix()
             pushMatrix();
-                multTranslation([-BODY_LENGHT/6, -BODY_HEIGHT/2, BODY_WIDTH/3]);
+                multTranslation([-LANDING_BEAM_LENGTH/5, SUPPORT_BEAM_LENGTH/3, -SUPPORT_BEAM_WIDTH]);
                 multRotationZ(55);
                 multRotationY(20);
                 supportBeam();
             popMatrix();
             pushMatrix();
-                multTranslation([-BODY_LENGHT/6, -BODY_HEIGHT/2, -BODY_WIDTH/3]);
-                multRotationZ(55);
-                multRotationY(-20);
-                supportBeam();
-            popMatrix();
-            pushMatrix();
-                multTranslation([BODY_LENGHT/6, -BODY_HEIGHT/2, BODY_WIDTH/3]);
+                multTranslation([LANDING_BEAM_LENGTH/5, SUPPORT_BEAM_LENGTH/3, -SUPPORT_BEAM_WIDTH]);
                 multRotationZ(-55);
                 multRotationY(-20);
                 supportBeam();
             popMatrix();
             pushMatrix();
-                multTranslation([BODY_LENGHT/6, -BODY_HEIGHT/2, -BODY_WIDTH/3]);
-                multRotationZ(-55);
-                multRotationY(20);
-                supportBeam();
-            popMatrix();
-            pushMatrix();
-                multTranslation([0, -BODY_HEIGHT*(5/7), BODY_WIDTH/2]);
-                landingBeam();
-            popMatrix();
-            pushMatrix();
-                multTranslation([0, -BODY_HEIGHT*(5/7), -BODY_WIDTH/2]);
                 landingBeam();
             popMatrix();
         popMatrix();
     }
 
+    function landingGear() {
+        pushMatrix();
+            pushMatrix();
+                multTranslation([0, -BODY_HEIGHT*(5/7), BODY_WIDTH/2]);
+                landingStructure();
+            popMatrix();
+            pushMatrix();
+                multTranslation([0, -BODY_HEIGHT*(5/7), -BODY_WIDTH/2]);
+                multScale([-1, 1, -1]);
+                landingStructure();
+            popMatrix();
+        popMatrix();
+    }
+
+
     function helicopterBody() {
         pushMatrix();
             pushMatrix();
+                updateColor(BODY_COLOR);
                 multScale([BODY_LENGHT, BODY_HEIGHT, BODY_WIDTH]);
                 uploadModelView();
                 SPHERE.draw(gl, program, mode);
@@ -279,14 +291,12 @@ function setup(shaders)
 
     function helicopter()
     {
-        // Don't forget to scale the sun, rotate it around the y axis at the correct speed
-        multScale([camera.scale, camera.scale, camera.scale]);
-        //multRotationY(360*time/TRAJECTORY_RADIUS);
+        pushMatrix();
+            multScale([camera.scale, camera.scale, camera.scale]);
+            uploadModelView();
+            helicopterBody();
+        popMatrix();
 
-        // Send the current modelview matrix to the vertex shader
-        uploadModelView();
-
-        helicopterBody();
     }
 
     function render()
@@ -297,6 +307,9 @@ function setup(shaders)
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         
         gl.useProgram(program);
+
+        //const uColor = gl.getUniformLocation(program, "uColor");
+        //gl.uniform3fv(uColor, currColor);
         
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
 
@@ -318,6 +331,13 @@ function setup(shaders)
             helicopter();
         popMatrix();
     }
+
+    function updateColor(color) {
+        gl.useProgram(program);
+        const uColor = gl.getUniformLocation(program, "uColor");
+        gl.uniform3fv(uColor, color);
+    }
+    
 }
 
 const urls = ["shader.vert", "shader.frag"];
