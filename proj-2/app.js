@@ -43,6 +43,9 @@ const SUPPORT_BEAM_LENGTH = 1.1;
 const SUPPORT_BEAM_HEIGHT = 0.15;
 const SUPPORT_BEAM_WIDTH = 0.15;
 
+const LANDING_BEAM_LENGTH = 5;
+const LANDING_BEAM_RADIUS = 0.25;
+
 const BODY_LENGHT = 5;
 const BODY_HEIGHT = 2;
 const BODY_WIDTH = 1.5;
@@ -207,6 +210,15 @@ function setup(shaders)
         popMatrix();
     }
 
+    function landingBeam() {
+        pushMatrix();
+            multScale([LANDING_BEAM_LENGTH, LANDING_BEAM_RADIUS, LANDING_BEAM_RADIUS]);
+            multRotationZ(90);
+            uploadModelView();
+            CYLINDER.draw(gl, program, mode);
+        popMatrix();
+    }
+
     function landingGear() {
         pushMatrix();
             pushMatrix();
@@ -232,6 +244,14 @@ function setup(shaders)
                 multRotationZ(-55);
                 multRotationY(20);
                 supportBeam();
+            popMatrix();
+            pushMatrix();
+                multTranslation([0, -BODY_HEIGHT*(5/7), BODY_WIDTH/2]);
+                landingBeam();
+            popMatrix();
+            pushMatrix();
+                multTranslation([0, -BODY_HEIGHT*(5/7), -BODY_WIDTH/2]);
+                landingBeam();
             popMatrix();
         popMatrix();
     }
