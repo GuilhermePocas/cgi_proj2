@@ -22,6 +22,18 @@ let animation = true;   // Animation is running
 const HELICOPTER_LENGHT = 10;
 const TRAJECTORY_RADIUS = 30;
 
+const HELICOPTER_MAX_HEIGHT = 20;
+var helicopterCurrentHeight = 10;
+const HELICOPTER_MAX_SPEED = 100;
+var helicopterCurrentSpeed = HELICOPTER_MAX_SPEED * helicopterCurrentHeight/HELICOPTER_MAX_HEIGHT;
+const HELICOPTER_MAX_ANGLE = 30;
+var helicopterCurrentAngle = HELICOPTER_MAX_ANGLE * helicopterCurrentHeight/HELICOPTER_MAX_HEIGHT;
+
+const MAIN_ROTOR_MAX_SPEED = 2000;
+var mainRotorCurrentSpeed = MAIN_ROTOR_MAX_SPEED * helicopterCurrentHeight/HELICOPTER_MAX_HEIGHT;
+const TAIL_ROTOR_MAX_SPEED = 3000;
+var tailRotorCurrentSpeed = TAIL_ROTOR_MAX_SPEED * helicopterCurrentHeight/HELICOPTER_MAX_HEIGHT;
+
 const BODY_COLOR = vec3(207/255, 25/255, 25/255);
 const BLADE_COLOR = vec3(17/255, 203/255, 240/255);
 const CYLINDER_COLOR = vec3(227/255, 182/255, 20/255);
@@ -33,7 +45,6 @@ const BLADE_WIDTH = 5;
 
 const ROTOR_RADIUS = 0.08;
 const ROTOR_HEIGHT = 0.5;
-const ROTOR_SPEED = 60;
 
 const TAIL_TIP_LENGTH = 1;
 const TAIL_TIP_HEIGHT = 0.5;
@@ -57,7 +68,7 @@ const BODY_WIDTH = 1.5;
 const FLOOR_SIZE = 100;
 const FLOOR_HEIGHT = 5;
 
-const VP_DISTANCE = 100;
+const VP_DISTANCE = 70;
 var currColor = vec3(0,0,0);
 var camera = { x:1, y:1, z:1, scale:1};
 var world = {scale: 1};
@@ -127,6 +138,18 @@ function setup(shaders)
                 currentview = rigthView;
                 isAxometric = false;
                 break;
+            case 'ArrowUp':
+                if(helicopterCurrentHeight < HELICOPTER_MAX_HEIGHT) {
+                    helicopterCurrentHeight++;
+                    updateSpeed(helicopterCurrentHeight);
+                }
+                break;
+            case 'ArrowDown':
+                if(helicopterCurrentHeight > 0) {
+                    helicopterCurrentHeight--;
+                    updateSpeed(helicopterCurrentHeight);
+                }
+                break;
         }
     }
 
@@ -166,7 +189,7 @@ function setup(shaders)
         pushMatrix();
             updateColor(CYLINDER_COLOR);
             multScale([ROTOR_RADIUS, ROTOR_HEIGHT, ROTOR_RADIUS]);
-            multRotationY(time*ROTOR_SPEED);
+            multRotationY(time*mainRotorCurrentSpeed);
             uploadModelView();
             CYLINDER.draw(gl, program, mode);
             pushMatrix();
@@ -191,7 +214,7 @@ function setup(shaders)
         pushMatrix();
             updateColor(CYLINDER_COLOR);
             multScale([ROTOR_RADIUS, ROTOR_HEIGHT/2, ROTOR_RADIUS]);
-            multRotationY(time*ROTOR_SPEED);
+            multRotationY(time*tailRotorCurrentSpeed);
             uploadModelView();
             CYLINDER.draw(gl, program, mode);
             pushMatrix();
@@ -367,7 +390,9 @@ function setup(shaders)
             floor();
         popMatrix();
         pushMatrix();
-            multTranslation([0, FLOOR_HEIGHT, 0]);
+            multRotationY(time*helicopterCurrentSpeed);
+            multTranslation([TRAJECTORY_RADIUS, FLOOR_HEIGHT + helicopterCurrentHeight, 0]);
+            multRotationY(270);
             helicopter();
         popMatrix();
     }
@@ -377,7 +402,13 @@ function setup(shaders)
         const uColor = gl.getUniformLocation(program, "uColor");
         gl.uniform3fv(uColor, color);
     }
-    
+
+    function updateSpeed(height) {
+        helicopterCurrentSpeed = HELICOPTER_MAX_SPEED * height/HELICOPTER_MAX_HEIGHT;
+        helicopterCurrentAngle = HELICOPTER_MAX_ANGLE * height/HELICOPTER_MAX_HEIGHT;
+        mainRotorCurrentSpeed = MAIN_ROTOR_MAX_SPEED * height/HELICOPTER_MAX_HEIGHT;
+        tailRotorCurrentSpeed = TAIL_ROTOR_MAX_SPEED * height/HELICOPTER_MAX_HEIGHT;
+    }    
 }
 
 const urls = ["shader.vert", "shader.frag"];
