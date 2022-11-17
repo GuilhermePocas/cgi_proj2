@@ -113,9 +113,9 @@ gui.add(world, "scale", 0, 5, 0.1).name("World Scale");
 //gui.add(helicopter_settings, "scale", 0, 5, 0.1).name("Helicopter Scale");
 
 let axometricView = lookAt([camera.x,camera.y,camera.z], [0, 0, 0], [0, 1, 0]);
-let frontView = lookAt([-1,0,0], [0, 0, 0], [0, 1, 0]);
-let upView = lookAt([0,1,0], [0, 0, 0], [0, 0, 1]);
-let rigthView = lookAt([0,0,1], [0, 0, 0], [0, 1, 0]);
+let frontView = lookAt([0,0,-1], [0, 0, 0], [0, 1, 0]);
+let upView = lookAt([0,1,0], [0, 0, 0], [0, 0, -1]);
+let rigthView = lookAt([1,0,0], [0, 0, 0], [0, 1, 0]);
 let currentview = axometricView;
 let isAxometric = true;
 
@@ -218,43 +218,43 @@ function setup(shaders)
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(modelView()));
     }
 
-    function blade(sett) {
-        updateColor(sett.colours.blade);
+    function blade(heli) {
+        updateColor(heli.colours.blade);
         multScale([BLADE_LENGTH, 0.1, BLADE_WIDTH]);
         uploadModelView();
         SPHERE.draw(gl, program, mode);
     }
 
-    function rotor(sett) {
+    function rotor(heli) {
         pushMatrix();
-            updateColor(sett.colours.cylinder);
+            updateColor(heli.colours.cylinder);
             multScale([ROTOR_RADIUS, ROTOR_HEIGHT, ROTOR_RADIUS]);
-            multRotationY(time*sett.rotors_speeds.main);
+            multRotationY(time*heli.rotors_speeds.main);
             uploadModelView();
             CYLINDER.draw(gl, program, mode);
             pushMatrix();
                 multRotationY(360/3);
                 multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                blade(sett);
+                blade(heli);
             popMatrix();
             pushMatrix();
                 multRotationY(360*2/3);
                 multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                blade(sett);
+                blade(heli);
             popMatrix();
             pushMatrix();
                 multRotationY(360*3/3);
                 multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                blade(sett);
+                blade(heli);
             popMatrix();
         popMatrix();
     }
 
-    function tailRotor(sett) {
+    function tailRotor(heli) {
         pushMatrix();
-            updateColor(sett.colours.cylinder);
+            updateColor(heli.colours.cylinder);
             multScale([ROTOR_RADIUS, ROTOR_HEIGHT/2, ROTOR_RADIUS]);
-            multRotationY(time*sett.rotors_speeds.tail);
+            multRotationY(time*heli.rotors_speeds.tail);
             uploadModelView();
             CYLINDER.draw(gl, program, mode);
             pushMatrix();
@@ -262,21 +262,21 @@ function setup(shaders)
                     multScale([1/6, 1, 1/3]);
                     multRotationY(360);
                     multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                    blade(sett);
+                    blade(heli);
                 popMatrix();
                 pushMatrix();
                     multScale([1/6, 1, 1/3]);
                     multRotationY(360/2);
                     multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                    blade(sett);
+                    blade(heli);
                 popMatrix();
             popMatrix();
         popMatrix();
     }
 
-    function tailTip(sett) {
+    function tailTip(heli) {
         pushMatrix();
-            updateColor(sett.colours.body);
+            updateColor(heli.colours.body);
             multScale([TAIL_TIP_LENGTH, TAIL_TIP_HEIGHT, TAIL_TIP_WIDTH]);
             uploadModelView();
             SPHERE.draw(gl, program, mode);
@@ -284,14 +284,14 @@ function setup(shaders)
         pushMatrix();
             multTranslation([0, 0, TAIL_TIP_WIDTH/2]);
             multRotationX(90);
-            tailRotor(sett);
+            tailRotor(heli);
         popMatrix();
     }
 
-    function tail(sett) {
+    function tail(heli) {
         pushMatrix();
             pushMatrix();
-                updateColor(sett.colours.body);
+                updateColor(heli.colours.body);
                 multScale([TAIL_LENGTH, TAIL_HEIGHT, TAIL_WIDTH]);
                 uploadModelView();
                 SPHERE.draw(gl, program, mode);
@@ -299,13 +299,13 @@ function setup(shaders)
             pushMatrix();
                 multTranslation([TAIL_LENGTH/2, TAIL_HEIGHT*(2/3), 0]);
                 multRotationZ(65);
-                tailTip(sett);
+                tailTip(heli);
             popMatrix();
         popMatrix();
     }
 
-    function supportBeam(sett) {
-        updateColor(sett.colours.beam);
+    function supportBeam(heli) {
+        updateColor(heli.colours.beam);
         pushMatrix();
             multScale([SUPPORT_BEAM_LENGTH, SUPPORT_BEAM_HEIGHT, SUPPORT_BEAM_WIDTH]);
             multRotationZ(90);
@@ -314,8 +314,8 @@ function setup(shaders)
         popMatrix();
     }
 
-    function landingBeam(sett) {
-        updateColor(sett.colours.cylinder);
+    function landingBeam(heli) {
+        updateColor(heli.colours.cylinder);
         pushMatrix();
             multScale([LANDING_BEAM_LENGTH, LANDING_BEAM_RADIUS, LANDING_BEAM_RADIUS]);
             multRotationZ(90);
@@ -324,73 +324,73 @@ function setup(shaders)
         popMatrix();
     }
 
-    function landingStructure(sett) {
+    function landingStructure(heli) {
         pushMatrix()
             pushMatrix();
                 multTranslation([-LANDING_BEAM_LENGTH/5, SUPPORT_BEAM_LENGTH*(3/8), -SUPPORT_BEAM_WIDTH]);
                 multRotationZ(55);
                 multRotationY(20);
-                supportBeam(sett);
+                supportBeam(heli);
             popMatrix();
             pushMatrix();
                 multTranslation([LANDING_BEAM_LENGTH/5, SUPPORT_BEAM_LENGTH*(3/8), -SUPPORT_BEAM_WIDTH]);
                 multRotationZ(-55);
                 multRotationY(-20);
-                supportBeam(sett);
+                supportBeam(heli);
             popMatrix();
             pushMatrix();
-                landingBeam(sett);
+                landingBeam(heli);
             popMatrix();
         popMatrix();
     }
 
-    function landingGear(sett) {
+    function landingGear(heli) {
         pushMatrix();
             pushMatrix();
                 multTranslation([0, -BODY_HEIGHT*(5/7), BODY_WIDTH/2]);
-                landingStructure(sett);
+                landingStructure(heli);
             popMatrix();
             pushMatrix();
                 multTranslation([0, -BODY_HEIGHT*(5/7), -BODY_WIDTH/2]);
                 multScale([-1, 1, -1]);
-                landingStructure(sett);
+                landingStructure(heli);
             popMatrix();
         popMatrix();
     }
 
 
-    function helicopterBody(sett) {
+    function helicopterBody(heli) {
         pushMatrix();
             pushMatrix();
-                updateColor(sett.colours.body);
+                updateColor(heli.colours.body);
                 multScale([BODY_LENGHT, BODY_HEIGHT, BODY_WIDTH]);
                 uploadModelView();
                 SPHERE.draw(gl, program, mode);
             popMatrix();
             pushMatrix();
                 multTranslation([TAIL_LENGTH*(3/4), BODY_HEIGHT/8, 0]);
-                tail(sett);
+                tail(heli);
             popMatrix();
             pushMatrix();
                 multTranslation([BODY_LENGHT*(1/14), BODY_HEIGHT/2, 0]);
-                rotor(sett);
+                rotor(heli);
             popMatrix();
             pushMatrix();
-                landingGear(sett);
+                landingGear(heli);
             popMatrix();
         popMatrix();
     }
 
-    function helicopter(sett)
+    function helicopter(heli)
     {
-        multTranslation([sett.pos.x, sett.pos.y, sett.pos.z]);
-        multRotationX(sett.rotations.x);
-        multRotationY(sett.rotations.y);
-        multRotationZ(sett.rotations.z);
+        multTranslation([heli.pos.x, heli.pos.y, heli.pos.z]);
+        multRotationX(heli.rotations.x);
+        multRotationY(heli.rotations.y);
+        multRotationZ(heli.rotations.z);
         pushMatrix();
-            multScale([sett.scale, sett.scale, sett.scale]);
+            multScale([heli.scale, heli.scale, heli.scale]);
             uploadModelView();
-            helicopterBody(sett);
+            helicopterBody(heli);
         popMatrix();
     }
 
