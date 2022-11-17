@@ -14,7 +14,7 @@ import { rotateY } from "../libs/MV.js";
 let gl;
 
 let time = 0;           // Global simulation time in days
-let speed = 1/60.0;     // Speed (how many days added to time on each render pass
+let speed = 1/240.0;     // Speed (how many days added to time on each render pass
 let mode;               // Drawing mode (gl.LINES or gl.TRIANGLES)
 let animation = true;   // Animation is running
 
@@ -66,20 +66,51 @@ const BODY_HEIGHT = 2;
 const BODY_WIDTH = 1.5;
 
 const FLOOR_SIZE = 100;
-const FLOOR_HEIGHT = 5;
+const FLOOR_HEIGHT = 2;
 
 const VP_DISTANCE = 70;
 var currColor = vec3(0,0,0);
 var camera = { x:1, y:1, z:1, scale:1};
-var world = {scale: 1};
-var helicopter_settings = {scale: 1};
+var world = {scale: 1}; 
+
+const DEFAULT_ANGLES = {
+    x : 0,
+    y : 0, 
+    z: 0,
+};
+const DEFAULT_COLOURS = {
+    blade : BLADE_COLOR,
+    body : BODY_COLOR,
+    cylinder : CYLINDER_COLOR,
+    beam: BEAM_COLOR
+};
+const DEFAULT_ROTATION = {
+    x: 0,
+    y: 270,
+    z: 0
+}
+
+const DEFAULT_POS = {
+    x: TRAJECTORY_RADIUS, 
+    y: FLOOR_HEIGHT, z: 0
+}
+
+const DEFAULT_ROTORS_SPEEDS = {
+    main: 0,
+    tail: 0
+}
+
+const DEFAULT_SCALE = 1;
+const DEFAULT_VELOCITY = 0;
+
+var helicopters = [];
 
 const gui = new GUI();
 gui.add(camera, "x", -10, 10, 0.1).name("X");
 gui.add(camera, "y", -10, 10, 0.1).name("Y");
 gui.add(camera, "z", -10, 10, 0.1).name("Z");
 gui.add(world, "scale", 0, 5, 0.1).name("World Scale");
-gui.add(helicopter_settings, "scale", 0, 5, 0.1).name("Helicopter Scale");
+//gui.add(helicopter_settings, "scale", 0, 5, 0.1).name("Helicopter Scale");
 
 let axometricView = lookAt([camera.x,camera.y,camera.z], [0, 0, 0], [0, 1, 0]);
 let frontView = lookAt([-1,0,0], [0, 0, 0], [0, 1, 0]);
@@ -150,6 +181,14 @@ function setup(shaders)
                     updateSpeed(helicopterCurrentHeight);
                 }
                 break;
+            case 'r':
+                break;
+            case 'd':
+                break;
+            case 'f':
+                break;
+            case 'g':
+                break;
         }
     }
 
@@ -158,9 +197,10 @@ function setup(shaders)
     CYLINDER.init(gl);
     CUBE.init(gl);
     gl.enable(gl.DEPTH_TEST);   // Enables Z-buffer depth test
+
+    helicopters.push(new HelicopterObject())
     
     window.requestAnimationFrame(render);
-
 
     function resize_canvas(event)
     {
@@ -178,43 +218,43 @@ function setup(shaders)
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(modelView()));
     }
 
-    function blade() {
-        updateColor(BLADE_COLOR);
+    function blade(sett) {
+        updateColor(sett.colours.blade);
         multScale([BLADE_LENGTH, 0.1, BLADE_WIDTH]);
         uploadModelView();
         SPHERE.draw(gl, program, mode);
     }
 
-    function rotor() {
+    function rotor(sett) {
         pushMatrix();
-            updateColor(CYLINDER_COLOR);
+            updateColor(sett.colours.cylinder);
             multScale([ROTOR_RADIUS, ROTOR_HEIGHT, ROTOR_RADIUS]);
-            multRotationY(time*mainRotorCurrentSpeed);
+            multRotationY(time*sett.rotors_speeds.main);
             uploadModelView();
             CYLINDER.draw(gl, program, mode);
             pushMatrix();
                 multRotationY(360/3);
                 multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                blade();
+                blade(sett);
             popMatrix();
             pushMatrix();
                 multRotationY(360*2/3);
                 multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                blade();
+                blade(sett);
             popMatrix();
             pushMatrix();
                 multRotationY(360*3/3);
                 multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                blade();
+                blade(sett);
             popMatrix();
         popMatrix();
     }
 
-    function tailRotor() {
+    function tailRotor(sett) {
         pushMatrix();
-            updateColor(CYLINDER_COLOR);
+            updateColor(sett.colours.cylinder);
             multScale([ROTOR_RADIUS, ROTOR_HEIGHT/2, ROTOR_RADIUS]);
-            multRotationY(time*tailRotorCurrentSpeed);
+            multRotationY(time*sett.rotors_speeds.tail);
             uploadModelView();
             CYLINDER.draw(gl, program, mode);
             pushMatrix();
@@ -222,21 +262,21 @@ function setup(shaders)
                     multScale([1/6, 1, 1/3]);
                     multRotationY(360);
                     multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                    blade();
+                    blade(sett);
                 popMatrix();
                 pushMatrix();
                     multScale([1/6, 1, 1/3]);
                     multRotationY(360/2);
                     multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                    blade();
+                    blade(sett);
                 popMatrix();
             popMatrix();
         popMatrix();
     }
 
-    function tailTip() {
+    function tailTip(sett) {
         pushMatrix();
-            updateColor(BODY_COLOR);
+            updateColor(sett.colours.body);
             multScale([TAIL_TIP_LENGTH, TAIL_TIP_HEIGHT, TAIL_TIP_WIDTH]);
             uploadModelView();
             SPHERE.draw(gl, program, mode);
@@ -244,14 +284,14 @@ function setup(shaders)
         pushMatrix();
             multTranslation([0, 0, TAIL_TIP_WIDTH/2]);
             multRotationX(90);
-            tailRotor();
+            tailRotor(sett);
         popMatrix();
     }
 
-    function tail() {
+    function tail(sett) {
         pushMatrix();
             pushMatrix();
-                updateColor(BODY_COLOR);
+                updateColor(sett.colours.body);
                 multScale([TAIL_LENGTH, TAIL_HEIGHT, TAIL_WIDTH]);
                 uploadModelView();
                 SPHERE.draw(gl, program, mode);
@@ -259,13 +299,13 @@ function setup(shaders)
             pushMatrix();
                 multTranslation([TAIL_LENGTH/2, TAIL_HEIGHT*(2/3), 0]);
                 multRotationZ(65);
-                tailTip();
+                tailTip(sett);
             popMatrix();
         popMatrix();
     }
 
-    function supportBeam() {
-        updateColor(BEAM_COLOR);
+    function supportBeam(sett) {
+        updateColor(sett.colours.beam);
         pushMatrix();
             multScale([SUPPORT_BEAM_LENGTH, SUPPORT_BEAM_HEIGHT, SUPPORT_BEAM_WIDTH]);
             multRotationZ(90);
@@ -274,8 +314,8 @@ function setup(shaders)
         popMatrix();
     }
 
-    function landingBeam() {
-        updateColor(CYLINDER_COLOR);
+    function landingBeam(sett) {
+        updateColor(sett.colours.cylinder);
         pushMatrix();
             multScale([LANDING_BEAM_LENGTH, LANDING_BEAM_RADIUS, LANDING_BEAM_RADIUS]);
             multRotationZ(90);
@@ -284,71 +324,74 @@ function setup(shaders)
         popMatrix();
     }
 
-    function landingStructure() {
+    function landingStructure(sett) {
         pushMatrix()
             pushMatrix();
                 multTranslation([-LANDING_BEAM_LENGTH/5, SUPPORT_BEAM_LENGTH*(3/8), -SUPPORT_BEAM_WIDTH]);
                 multRotationZ(55);
                 multRotationY(20);
-                supportBeam();
+                supportBeam(sett);
             popMatrix();
             pushMatrix();
                 multTranslation([LANDING_BEAM_LENGTH/5, SUPPORT_BEAM_LENGTH*(3/8), -SUPPORT_BEAM_WIDTH]);
                 multRotationZ(-55);
                 multRotationY(-20);
-                supportBeam();
+                supportBeam(sett);
             popMatrix();
             pushMatrix();
-                landingBeam();
+                landingBeam(sett);
             popMatrix();
         popMatrix();
     }
 
-    function landingGear() {
+    function landingGear(sett) {
         pushMatrix();
             pushMatrix();
                 multTranslation([0, -BODY_HEIGHT*(5/7), BODY_WIDTH/2]);
-                landingStructure();
+                landingStructure(sett);
             popMatrix();
             pushMatrix();
                 multTranslation([0, -BODY_HEIGHT*(5/7), -BODY_WIDTH/2]);
                 multScale([-1, 1, -1]);
-                landingStructure();
+                landingStructure(sett);
             popMatrix();
         popMatrix();
     }
 
 
-    function helicopterBody() {
+    function helicopterBody(sett) {
         pushMatrix();
             pushMatrix();
-                updateColor(BODY_COLOR);
+                updateColor(sett.colours.body);
                 multScale([BODY_LENGHT, BODY_HEIGHT, BODY_WIDTH]);
                 uploadModelView();
                 SPHERE.draw(gl, program, mode);
             popMatrix();
             pushMatrix();
                 multTranslation([TAIL_LENGTH*(3/4), BODY_HEIGHT/8, 0]);
-                tail();
+                tail(sett);
             popMatrix();
             pushMatrix();
                 multTranslation([BODY_LENGHT*(1/14), BODY_HEIGHT/2, 0]);
-                rotor();
+                rotor(sett);
             popMatrix();
             pushMatrix();
-                landingGear();
+                landingGear(sett);
             popMatrix();
         popMatrix();
     }
 
-    function helicopter()
+    function helicopter(sett)
     {
+        multTranslation([sett.pos.x, sett.pos.y, sett.pos.z]);
+        multRotationX(sett.rotations.x);
+        multRotationY(sett.rotations.y);
+        multRotationZ(sett.rotations.z);
         pushMatrix();
-            multScale([helicopter_settings.scale, helicopter_settings.scale, helicopter_settings.scale]);
+            multScale([sett.scale, sett.scale, sett.scale]);
             uploadModelView();
-            helicopterBody();
+            helicopterBody(sett);
         popMatrix();
-
     }
 
     function floor() {
@@ -389,12 +432,11 @@ function setup(shaders)
         pushMatrix();
             floor();
         popMatrix();
-        pushMatrix();
-            multRotationY(time*helicopterCurrentSpeed);
-            multTranslation([TRAJECTORY_RADIUS, FLOOR_HEIGHT + helicopterCurrentHeight, 0]);
-            multRotationY(270);
-            helicopter();
-        popMatrix();
+        for(const heli of helicopters){
+            pushMatrix();
+                helicopter(heli);
+            popMatrix();
+        }
     }
 
     function updateColor(color) {
@@ -409,6 +451,19 @@ function setup(shaders)
         mainRotorCurrentSpeed = MAIN_ROTOR_MAX_SPEED * height/HELICOPTER_MAX_HEIGHT;
         tailRotorCurrentSpeed = TAIL_ROTOR_MAX_SPEED * height/HELICOPTER_MAX_HEIGHT;
     }    
+}
+
+class HelicopterObject {
+
+    constructor(){
+        this.pos = DEFAULT_POS
+        this.angles = DEFAULT_ANGLES
+        this.colours = DEFAULT_COLOURS
+        this.rotations = DEFAULT_ROTATION
+        this.velocity = DEFAULT_VELOCITY
+        this.rotors_speeds = DEFAULT_ROTORS_SPEEDS
+        this.scale = DEFAULT_SCALE
+    }
 }
 
 const urls = ["shader.vert", "shader.frag"];
