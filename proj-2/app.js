@@ -201,7 +201,8 @@ function setup(shaders)
                 break;
             case 'ArrowRight':
                 if(canMove(helicopters[selected_helicopter])){
-                    updateHeliPos(HELICOPTER_ACTIONS.FORWARD, helicopters[selected_helicopter]);
+                    helicopters[selected_helicopter].velocity += 0.01;
+                    console.log("bruh");
                 }
                 break;
             case 'ArrowLeft':
@@ -515,14 +516,14 @@ function setup(shaders)
                 break;
             case HELICOPTER_ACTIONS.FORWARD:
                 let count = helicopters[selected_helicopter].count+=0.1;
-                heli.pos.x = Math.cos(time) * TRAJECTORY_RADIUS;
-                heli.pos.z = Math.sin(-time) * TRAJECTORY_RADIUS;
                 heli.rotations.z = 30;
                 heli.rotations.x = 10;
                 let x = heli.pos.x;
                 let z = heli.pos.z;
                 let zx = (Math.atan2(-z,x) * 360) / (2*Math.PI) + 270;
                 heli.rotations.y = zx;
+                heli.pos.x = Math.cos(time * helicopters[selected_helicopter].velocity) * TRAJECTORY_RADIUS;
+                heli.pos.z = Math.sin(-time * helicopters[selected_helicopter].velocity) * TRAJECTORY_RADIUS;
                 break;
             case HELICOPTER_ACTIONS.BACKWARD:
                 break;
@@ -546,7 +547,7 @@ class HelicopterObject {
         this.pos = DEFAULT_POS
         this.colours = DEFAULT_COLOURS
         this.rotations = DEFAULT_ROTATION
-        this.velocity = DEFAULT_VELOCITY
+        this.velocity = 1//DEFAULT_VELOCITY
         this.acceleration = DEFAULT_ACCELERATION
         this.rotors_speeds = DEFAULT_ROTORS_SPEEDS
         this.scale = DEFAULT_SCALE
