@@ -22,13 +22,10 @@ let animation = true;   // Animation is running
 const HELICOPTER_LENGHT = 10;
 const TRAJECTORY_RADIUS = 30;
 
-const HELICOPTER_MAX_HEIGHT = 60;
-const HELICOPTER_MIN_HEIGHT = 8;
-var helicopterCurrentHeight = 10;
-const HELICOPTER_MAX_SPEED = 2;
-var helicopterCurrentSpeed = HELICOPTER_MAX_SPEED * helicopterCurrentHeight/HELICOPTER_MAX_HEIGHT;
-const HELICOPTER_MAX_ANGLE = 30;
-var helicopterCurrentAngle = HELICOPTER_MAX_ANGLE * helicopterCurrentHeight/HELICOPTER_MAX_HEIGHT;
+const FLOOR_SIZE = 140;
+const FLOOR_HEIGHT = 3;
+
+
 
 const MAIN_ROTOR_MAX_SPEED = 2000;
 const TAIL_ROTOR_MAX_SPEED = 3000;
@@ -64,8 +61,11 @@ const BODY_LENGHT = 5;
 const BODY_HEIGHT = 2;
 const BODY_WIDTH = 1.5;
 
-const FLOOR_SIZE = 140;
-const FLOOR_HEIGHT = 3;
+const HELICOPTER_MAX_HEIGHT = 60;
+const HELICOPTER_MIN_HEIGHT = FLOOR_HEIGHT+BODY_HEIGHT+LANDING_BEAM_RADIUS;
+const HELICOPTER_MAX_SPEED = 2;
+const HELICOPTER_MAX_ANGLE = 30;
+
 
 const BUILDING_SIZE = 15;
 const BUILDING_MIN_HEIGHT = 10;
@@ -90,7 +90,8 @@ const DEFAULT_ROTATION = {
 
 const DEFAULT_POS = {
     x: TRAJECTORY_RADIUS, 
-    y: HELICOPTER_MIN_HEIGHT, z: 0
+    y: HELICOPTER_MIN_HEIGHT, 
+    z: 0
 }
 
 const DEFAULT_ROTORS_SPEEDS = {
@@ -192,7 +193,6 @@ function setup(shaders)
                 break;
             case 'ArrowUp':
                 if(helicopters[selected_helicopter].pos.y < HELICOPTER_MAX_HEIGHT) {
-                    helicopters[selected_helicopter].isInAir = true;
                     helicopters[selected_helicopter].pos.y += 0.1;
                     if(helicopters[selected_helicopter].velocity.y < MAIN_ROTOR_MAX_SPEED)
                         helicopters[selected_helicopter].velocity.y += 10;
@@ -200,19 +200,21 @@ function setup(shaders)
                 }
                 break;
             case 'ArrowDown':
-                let minHeight = getMinPossibleHeight(helicopters[selected_helicopter].pos);
+                let minHeight = HELICOPTER_MIN_HEIGHT;//getMinPossibleHeight(helicopters[selected_helicopter].pos);
+                console.log(helicopters[selected_helicopter].isInAir)
                 if(helicopters[selected_helicopter].pos.y >= minHeight) {
-                    if(minHeight+0.25 <= helicopters[selected_helicopter].pos.y - 0.25)
+                    if(minHeight <= helicopters[selected_helicopter].pos.y - 0.25)
                         helicopters[selected_helicopter].pos.y -= 0.25;
-                    else
-                    helicopters[selected_helicopter].pos.y = minHeight;
+                    else 
+                        helicopters[selected_helicopter].pos.y = minHeight;
+                    
                     updateHeliPos(HELICOPTER_ACTIONS.DESCENT, helicopters[selected_helicopter]);
                 }
                 break;
             case 'ArrowRight':
                 if(canMove(helicopters[selected_helicopter])){
                     if(helicopters[selected_helicopter].velocity.x < HELICOPTER_MAX_SPEED)
-                    helicopters[selected_helicopter].velocity.x += 0.1;
+                    helicopters[selected_helicopter].velocity.x += 0.01;
                     updateHeliPos(HELICOPTER_ACTIONS.CLIMB, helicopters[selected_helicopter]);
                 }
                 break;
@@ -221,7 +223,7 @@ function setup(shaders)
                     if(helicopters[selected_helicopter].velocity.x <= 0)
                         helicopters[selected_helicopter].velocity.x = 0;
                     else
-                        helicopters[selected_helicopter].velocity.x -= 0.1;
+                        helicopters[selected_helicopter].velocity.x -= 0.01;
                     updateHeliPos(HELICOPTER_ACTIONS.BACKWARD, helicopters[selected_helicopter]);
                 }
                 break;
@@ -280,10 +282,11 @@ function setup(shaders)
     function canMove(heli){
         return heli.isInAir;
     }
-
+/*
     function getMinPossibleHeight(pos){
-        return HELICOPTER_MIN_HEIGHT;
+        return FLOOR_HEIGHT+BODY_HEIGHT;
     }
+*/
 
     function blade(heli) {
         updateColor(heli.colours.blade);
@@ -509,9 +512,9 @@ function setup(shaders)
         } 
         //TODO not working, at all.
         //I have no idea what I'm doing
-        if(isPov){
+        /*if(isPov){
             currentview = lookAt([0, 0, 0], [-helicopters[0].pos.x, -helicopters[0].pos.y, -helicopters[0].pos.z], [1,0,1])
-        }
+        }*/
 
         uploadModelView();
 
@@ -541,12 +544,16 @@ function setup(shaders)
 
         switch (action){
             case HELICOPTER_ACTIONS.CLIMB:
+                heli.isInAir = true;
                 heli.rotors_speeds.main = (MAIN_ROTOR_MAX_SPEED * heli.velocity.x + heli.velocity.y)/HELICOPTER_MAX_SPEED;
                 heli.rotors_speeds.tail = (TAIL_ROTOR_MAX_SPEED * heli.velocity.x + heli.velocity.y)/HELICOPTER_MAX_SPEED;
                 break;
             case HELICOPTER_ACTIONS.DESCENT:
-                if(heli.pos.y < HELICOPTER_MIN_HEIGHT)
+                if(heli.pos.y == HELICOPTER_MIN_HEIGHT) {
                     heli.isInAir = false;
+                    heli.rotors_speeds.main = 0;
+                    heli.rotors_speeds.tail = 0;
+                }
                 break;
             case HELICOPTER_ACTIONS.FORWARD:
                 heli.rotations.z = (HELICOPTER_MAX_ANGLE * heli.velocity.x)/HELICOPTER_MAX_SPEED;
@@ -554,8 +561,13 @@ function setup(shaders)
                 heli.rotors_speeds.main = (MAIN_ROTOR_MAX_SPEED * heli.velocity.x + heli.velocity.y)/HELICOPTER_MAX_SPEED;
                 heli.rotors_speeds.tail = (TAIL_ROTOR_MAX_SPEED * heli.velocity.x + heli.velocity.y)/HELICOPTER_MAX_SPEED;
                 heli.rotations.y = zx;
-                /*heli.pos.x = Math.cos(time) * TRAJECTORY_RADIUS;
-                heli.pos.z = Math.sin(-time) * TRAJECTORY_RADIUS;*/
+
+                //heli.velocity.x = heli.velocity.abs * Math.cos((zx * (Math.PI/180)) * time);
+                //heli.velocity.y = heli.velocity.abs * Math.sin((zx * (Math.PI/180)) * time);            
+
+                //console.log(heli.velocity.x);
+                heli.pos.x = Math.cos(time * heli.velocity.x) * TRAJECTORY_RADIUS;
+                heli.pos.z = Math.sin(time * heli.velocity.x) * TRAJECTORY_RADIUS;
                 break;
             case HELICOPTER_ACTIONS.BACKWARD:
                 break;
