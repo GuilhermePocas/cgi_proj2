@@ -66,7 +66,7 @@ const BODY_LENGHT = 5;
 const BODY_HEIGHT = 2;
 const BODY_WIDTH = 1.5;
 
-const FLOOR_SIZE = 120;
+const FLOOR_SIZE = 140;
 const FLOOR_HEIGHT = 3;
 
 const BUILDING_SIZE = 15;
@@ -107,7 +107,7 @@ const HELICOPTER_ACTIONS = {
     BACKWARD : 3
 }
 
-const DEFAULT_SCALE = 1;
+const DEFAULT_SCALE = 2.6;
 const DEFAULT_VELOCITY = {
     x: 0,
     y: 1
@@ -202,11 +202,12 @@ function setup(shaders)
             case 'ArrowRight':
                 if(canMove(helicopters[selected_helicopter])){
                     helicopters[selected_helicopter].velocity += 0.01;
-                    console.log("bruh");
                 }
                 break;
             case 'ArrowLeft':
-                updateHeliPos(HELICOPTER_ACTIONS.BACKWARD, helicopters[selected_helicopter]);
+                if(canMove(helicopters[selected_helicopter])){
+                    helicopters[selected_helicopter].velocity -= 0.01;
+                }
                 break;
             case 'r':
                 break;
@@ -518,12 +519,11 @@ function setup(shaders)
             case HELICOPTER_ACTIONS.CLIMB:
                 break;
             case HELICOPTER_ACTIONS.DESCENT:
-                console.log(heli)
+                //console.log(heli)
                 if(heli.pos.y == HELICOPTER_MIN_HEIGHT)
                     heli.isInAir = false;
                 break;
             case HELICOPTER_ACTIONS.FORWARD:
-                let count = helicopters[selected_helicopter].count+=0.1;
                 heli.rotations.z = 30;
                 heli.rotations.x = 10;
                 let x = heli.pos.x;
