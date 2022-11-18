@@ -1,7 +1,7 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../libs/utils.js";
 import { ortho, lookAt, flatten, mult, mat4, vec4, vec3, inverse } from "../libs/MV.js";
 import { GUI } from "../libs/dat.gui.module.js";
-import {modelView, loadMatrix, multRotationY, multRotationX, multRotationZ, multTranslation, multScale, pushMatrix, popMatrix  } from "../libs/stack.js";
+import {modelView, loadMatrix, multRotationY, multRotationX, multRotationZ, multTranslation, multScale, pushMatrix, popMatrix, multMatrix  } from "../libs/stack.js";
 
 import * as SPHERE from '../../libs/objects/sphere.js';
 import * as CUBE from '../../libs/objects/cube.js';
@@ -75,7 +75,7 @@ const BUILDING_MAX_HEIGHT = HELICOPTER_MAX_HEIGHT-2;
 
 const VP_DISTANCE = 70;
 var currColor = vec3(0,0,0);
-var camera = { x:1, y:1, z:1, scale:1};
+var camera = { tetha:-30, alpha:45, betha:0};
 var world = {scale: 1}; 
 
 const DEFAULT_COLOURS = {
@@ -96,8 +96,8 @@ const DEFAULT_POS = {
 }
 
 const DEFAULT_ROTORS_SPEEDS = {
-    main: 0,
-    tail: 0
+    main: 500,
+    tail: 500
 }
 
 const HELICOPTER_ACTIONS = {
@@ -120,13 +120,13 @@ let buildings = [];
 let selected_helicopter = 0;
 
 const gui = new GUI();
-gui.add(camera, "x", -10, 10, 0.1).name("X");
-gui.add(camera, "y", -10, 10, 0.1).name("Y");
-gui.add(camera, "z", -10, 10, 0.1).name("Z");
+gui.add(camera, "tetha", -180, 180, 1).name("Tetha");
+gui.add(camera, "alpha", -180, 180, 1).name("Alpha");
+gui.add(camera, "betha", -180, 180, 1).name("Betha");
 gui.add(world, "scale", 0, 5, 0.1).name("World Scale");
 
-let axometricView = lookAt([camera.x,camera.y,camera.z], [0, 0, 0], [0, 1, 0]);
 let frontView = lookAt([0,0,-1], [0, 0, 0], [0, 1, 0]);
+let axometricView = frontView;
 let upView = lookAt([0,1,0], [0, 0, 0], [0, 0, -1]);
 let rigthView = lookAt([1,0,0], [0, 0, 0], [0, 1, 0]);
 let currentview = axometricView;
@@ -276,7 +276,7 @@ function setup(shaders)
         pushMatrix();
             updateColor(heli.colours.cylinder);
             multScale([ROTOR_RADIUS, ROTOR_HEIGHT, ROTOR_RADIUS]);
-            multRotationY(heli.rotors_speeds.main + time);
+            multRotationY(heli.rotors_speeds.main * time);
             uploadModelView();
             CYLINDER.draw(gl, program, mode);
             pushMatrix();
@@ -301,7 +301,7 @@ function setup(shaders)
         pushMatrix();
             updateColor(heli.colours.cylinder);
             multScale([ROTOR_RADIUS, ROTOR_HEIGHT/2, ROTOR_RADIUS]);
-            multRotationY(heli.rotors_speeds.tail + time);
+            multRotationY(heli.rotors_speeds.tail * time);
             uploadModelView();
             CYLINDER.draw(gl, program, mode);
             pushMatrix();
@@ -480,14 +480,22 @@ function setup(shaders)
             vec4(0, 0, 0, 1));
         
         //loadMatrix(mult(transformMatrix, rotateY(90)));
-        axometricView = lookAt([camera.x,camera.y,camera.z], [0, 0, 0], [0, 1, 0]);
-        if(isAxometric) currentview = axometricView;
+        //axometricView = lookAt([camera.x,camera.y,camera.z], [0, 0, 0], [0, 1, 0]);
+        axometricView = frontView;
+
         loadMatrix(currentview);
+
+        if(isAxometric){
+            currentview = axometricView;
+            multRotationX(camera.tetha);
+            multRotationY(camera.alpha);
+            multRotationZ(camera.betha);
+        } 
 
         uploadModelView();
 
         multScale([world.scale, world.scale, world.scale]);
-        
+
         pushMatrix();
             floor();
         popMatrix();
@@ -553,6 +561,13 @@ class HelicopterObject {
         this.scale = DEFAULT_SCALE
         this.count = 0;
         this.isInAir = false;
+        this.objects = [];
+    }
+}
+
+class BoxObject{
+    constructor(){
+
     }
 }
 
