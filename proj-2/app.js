@@ -27,8 +27,8 @@ const FLOOR_HEIGHT = 3;
 
 
 
-const MAIN_ROTOR_MAX_SPEED = 1000;
-const TAIL_ROTOR_MAX_SPEED = 2000;
+const MAIN_ROTOR_MAX_SPEED = 5;
+const TAIL_ROTOR_MAX_SPEED = 10;
 
 const BODY_COLOR = vec3(207/255, 25/255, 25/255);
 const BLADE_COLOR = vec3(17/255, 203/255, 240/255);
@@ -95,7 +95,9 @@ const DEFAULT_POS = {
 }
 
 const DEFAULT_ROTORS_SPEEDS = {
+    mainRate: 0,
     main: 0,
+    tailRate: 0,
     tail: 0
 }
 
@@ -196,19 +198,21 @@ function setup(shaders)
             case 'ArrowUp':
                 if(helicopters[selected_helicopter].pos.y < HELICOPTER_MAX_HEIGHT) {
                     helicopters[selected_helicopter].pos.y += 0.1;
-                    if(helicopters[selected_helicopter].velocity.y < MAIN_ROTOR_MAX_SPEED)
-                        helicopters[selected_helicopter].velocity.y += 1;
+                    if(helicopters[selected_helicopter].velocity.y < HELICOPTER_MAX_SPEED)
+                        helicopters[selected_helicopter].velocity.y += 0.01;
                     updateHeliPos(HELICOPTER_ACTIONS.CLIMB, helicopters[selected_helicopter]);
                 }
                 break;
             case 'ArrowDown':
-                console.log(helicopters[selected_helicopter].isInAir)
                 if(helicopters[selected_helicopter].pos.y >= HELICOPTER_MIN_HEIGHT) {
-                    if(HELICOPTER_MIN_HEIGHT <= helicopters[selected_helicopter].pos.y - 0.25)
-                        helicopters[selected_helicopter].pos.y -= 0.25;
+                    if(HELICOPTER_MIN_HEIGHT <= helicopters[selected_helicopter].pos.y - 0.1)
+                        helicopters[selected_helicopter].pos.y -= 0.1;
                     else 
                         helicopters[selected_helicopter].pos.y = HELICOPTER_MIN_HEIGHT;
                     
+                    if(helicopters[selected_helicopter].velocity.y < HELICOPTER_MAX_SPEED)
+                        helicopters[selected_helicopter].velocity.y -= 0.01;
+
                     updateHeliPos(HELICOPTER_ACTIONS.DESCENT, helicopters[selected_helicopter]);
                 }
                 break;
@@ -300,7 +304,7 @@ function setup(shaders)
         pushMatrix();
             updateColor(heli.colours.cylinder);
             multScale([ROTOR_RADIUS, ROTOR_HEIGHT, ROTOR_RADIUS]);
-            multRotationY(heli.rotors_speeds.main * time);
+            multRotationY(heli.rotors_speeds.mainRate);
             uploadModelView();
             CYLINDER.draw(gl, program, mode);
             pushMatrix();
@@ -325,7 +329,7 @@ function setup(shaders)
         pushMatrix();
             updateColor(heli.colours.cylinder);
             multScale([ROTOR_RADIUS, ROTOR_HEIGHT/2, ROTOR_RADIUS]);
-            multRotationY(heli.rotors_speeds.tail * time);
+            multRotationY(heli.rotors_speeds.tailRate);
             uploadModelView();
             CYLINDER.draw(gl, program, mode);
             pushMatrix();
@@ -513,9 +517,9 @@ function setup(shaders)
         } 
         //TODO not working, at all.
         //I have no idea what I'm doing
-        /*if(isPov){
+        if(isPov){
             currentview = lookAt([0, 0, 0], [-helicopters[0].pos.x, -helicopters[0].pos.y, -helicopters[0].pos.z], [1,0,1])
-        }*/
+        }
 
         uploadModelView();
 
@@ -546,10 +550,25 @@ function setup(shaders)
         switch (action){
             case HELICOPTER_ACTIONS.CLIMB:
                 heli.isInAir = true;
-                heli.rotors_speeds.main = (MAIN_ROTOR_MAX_SPEED * heli.velocity.x + heli.velocity.y)/HELICOPTER_MAX_SPEED;
-                heli.rotors_speeds.tail = (TAIL_ROTOR_MAX_SPEED * heli.velocity.x + heli.velocity.y)/HELICOPTER_MAX_SPEED;
+                
+                if(heli.rotors_speeds.main < MAIN_ROTOR_MAX_SPEED)
+                    heli.rotors_speeds.main += heli.velocity.y;
+                heli.rotors_speeds.mainRate += heli.rotors_speeds.main;
+
+                if(heli.rotors_speeds.tail < TAIL_ROTOR_MAX_SPEED)
+                    heli.rotors_speeds.tail += heli.velocity.y;
+                heli.rotors_speeds.tailRate += heli.rotors_speeds.tail;
                 break;
             case HELICOPTER_ACTIONS.DESCENT:
+
+                if(heli.rotors_speeds.main < MAIN_ROTOR_MAX_SPEED)
+                    heli.rotors_speeds.main -= heli.velocity.y;
+                heli.rotors_speeds.mainRate += heli.rotors_speeds.main;
+
+                if(heli.rotors_speeds.tail < TAIL_ROTOR_MAX_SPEED)
+                    heli.rotors_speeds.tail -= heli.velocity.y;
+                heli.rotors_speeds.tailRate += heli.rotors_speeds.tail;
+
                 if(heli.pos.y == HELICOPTER_MIN_HEIGHT) {
                     heli.isInAir = false;
                     heli.rotors_speeds.main = 0;
@@ -558,11 +577,17 @@ function setup(shaders)
                 break;
             case HELICOPTER_ACTIONS.FORWARD:
                 heli.rotations.z = (HELICOPTER_MAX_ANGLE * heli.velocity.x)/HELICOPTER_MAX_SPEED;
+                heli.rotations.y = zx;
                 heli.rotations.x = (10 * heli.velocity.x)/HELICOPTER_MAX_SPEED;
 
-                heli.rotors_speeds.main = (MAIN_ROTOR_MAX_SPEED * heli.velocity.x)/HELICOPTER_MAX_SPEED;
-                heli.rotors_speeds.tail = (TAIL_ROTOR_MAX_SPEED * heli.velocity.x)/HELICOPTER_MAX_SPEED;
-                heli.rotations.y = zx;
+                if(heli.rotors_speeds.main < MAIN_ROTOR_MAX_SPEED)
+                    heli.rotors_speeds.main += heli.velocity.x;
+                heli.rotors_speeds.mainRate += heli.rotors_speeds.main;
+
+                if(heli.rotors_speeds.tail < TAIL_ROTOR_MAX_SPEED)
+                    heli.rotors_speeds.tail += heli.velocity.x;
+                heli.rotors_speeds.tailRate += heli.rotors_speeds.tail;
+
 
                 //heli.velocity.x = heli.velocity.abs * Math.cos((zx * (Math.PI/180)) * time);
                 //heli.velocity.y = heli.velocity.abs * Math.sin((zx * (Math.PI/180)) * time);            
@@ -572,6 +597,25 @@ function setup(shaders)
                 heli.pos.z = Math.sin(-heli.velocity.movRate) * TRAJECTORY_RADIUS;
                 break;
             case HELICOPTER_ACTIONS.BACKWARD:
+                heli.rotations.z = (HELICOPTER_MAX_ANGLE * heli.velocity.x)/HELICOPTER_MAX_SPEED;
+                heli.rotations.y = zx;
+                heli.rotations.x = (10 * heli.velocity.x)/HELICOPTER_MAX_SPEED;
+
+                if(heli.rotors_speeds.main < MAIN_ROTOR_MAX_SPEED)
+                    heli.rotors_speeds.main -= heli.velocity.x;
+                heli.rotors_speeds.mainRate += heli.rotors_speeds.main;
+
+                if(heli.rotors_speeds.tail < TAIL_ROTOR_MAX_SPEED)
+                    heli.rotors_speeds.tail -= heli.velocity.x;
+                heli.rotors_speeds.tailRate += heli.rotors_speeds.tail;
+
+
+                //heli.velocity.x = heli.velocity.abs * Math.cos((zx * (Math.PI/180)) * time);
+                //heli.velocity.y = heli.velocity.abs * Math.sin((zx * (Math.PI/180)) * time);            
+
+                heli.velocity.movRate += heli.velocity.x;
+                heli.pos.x = Math.cos(heli.velocity.movRate) * TRAJECTORY_RADIUS;
+                heli.pos.z = Math.sin(-heli.velocity.movRate) * TRAJECTORY_RADIUS;
                 break;
         }
     } 
