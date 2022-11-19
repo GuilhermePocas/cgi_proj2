@@ -63,7 +63,7 @@ const BODY_WIDTH = 1.5;
 
 const HELICOPTER_MAX_HEIGHT = 60;
 const HELICOPTER_MIN_HEIGHT = FLOOR_HEIGHT+BODY_HEIGHT+LANDING_BEAM_RADIUS;
-const HELICOPTER_MAX_SPEED = 0.0025;
+const HELICOPTER_MAX_SPEED = 0.025;
 const HELICOPTER_MAX_ANGLE = 30;
 
 
@@ -215,7 +215,7 @@ function setup(shaders)
             case 'ArrowRight':
                 if(canMove(helicopters[selected_helicopter])){
                     if(helicopters[selected_helicopter].velocity.x < HELICOPTER_MAX_SPEED)
-                    helicopters[selected_helicopter].velocity.x += 0.0001;
+                    helicopters[selected_helicopter].velocity.x += 0.001;
                     updateHeliPos(HELICOPTER_ACTIONS.CLIMB, helicopters[selected_helicopter]);
                 }
                 break;
@@ -224,7 +224,7 @@ function setup(shaders)
                     if(helicopters[selected_helicopter].velocity.x <= 0)
                         helicopters[selected_helicopter].velocity.x = 0;
                     else
-                        helicopters[selected_helicopter].velocity.x -= 0.0001;
+                        helicopters[selected_helicopter].velocity.x -= 0.001;
                     updateHeliPos(HELICOPTER_ACTIONS.BACKWARD, helicopters[selected_helicopter]);
                 }
                 break;
@@ -567,7 +567,7 @@ function setup(shaders)
                 //heli.velocity.x = heli.velocity.abs * Math.cos((zx * (Math.PI/180)) * time);
                 //heli.velocity.y = heli.velocity.abs * Math.sin((zx * (Math.PI/180)) * time);            
 
-                heli.velocity.movRate += 5*heli.velocity.x;
+                heli.velocity.movRate += heli.velocity.x;
                 heli.pos.x = Math.cos(heli.velocity.movRate) * TRAJECTORY_RADIUS;
                 heli.pos.z = Math.sin(-heli.velocity.movRate) * TRAJECTORY_RADIUS;
                 break;
