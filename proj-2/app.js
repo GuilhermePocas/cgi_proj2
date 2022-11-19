@@ -27,8 +27,8 @@ const FLOOR_HEIGHT = 3;
 
 
 
-const MAIN_ROTOR_MAX_SPEED = 2000;
-const TAIL_ROTOR_MAX_SPEED = 3000;
+const MAIN_ROTOR_MAX_SPEED = 1000;
+const TAIL_ROTOR_MAX_SPEED = 2000;
 
 const BODY_COLOR = vec3(207/255, 25/255, 25/255);
 const BLADE_COLOR = vec3(17/255, 203/255, 240/255);
@@ -197,7 +197,7 @@ function setup(shaders)
                 if(helicopters[selected_helicopter].pos.y < HELICOPTER_MAX_HEIGHT) {
                     helicopters[selected_helicopter].pos.y += 0.1;
                     if(helicopters[selected_helicopter].velocity.y < MAIN_ROTOR_MAX_SPEED)
-                        helicopters[selected_helicopter].velocity.y += 10;
+                        helicopters[selected_helicopter].velocity.y += 1;
                     updateHeliPos(HELICOPTER_ACTIONS.CLIMB, helicopters[selected_helicopter]);
                 }
                 break;
@@ -559,16 +559,15 @@ function setup(shaders)
             case HELICOPTER_ACTIONS.FORWARD:
                 heli.rotations.z = (HELICOPTER_MAX_ANGLE * heli.velocity.x)/HELICOPTER_MAX_SPEED;
                 heli.rotations.x = (10 * heli.velocity.x)/HELICOPTER_MAX_SPEED;
-                heli.rotors_speeds.main = (MAIN_ROTOR_MAX_SPEED * heli.velocity.x + heli.velocity.y)/HELICOPTER_MAX_SPEED;
-                heli.rotors_speeds.tail = (TAIL_ROTOR_MAX_SPEED * heli.velocity.x + heli.velocity.y)/HELICOPTER_MAX_SPEED;
+
+                heli.rotors_speeds.main = (MAIN_ROTOR_MAX_SPEED * heli.velocity.x)/HELICOPTER_MAX_SPEED;
+                heli.rotors_speeds.tail = (TAIL_ROTOR_MAX_SPEED * heli.velocity.x)/HELICOPTER_MAX_SPEED;
                 heli.rotations.y = zx;
 
                 //heli.velocity.x = heli.velocity.abs * Math.cos((zx * (Math.PI/180)) * time);
                 //heli.velocity.y = heli.velocity.abs * Math.sin((zx * (Math.PI/180)) * time);            
 
-                heli.velocity.movRate += time*heli.velocity.x;
-                console.log(heli.velocity.movRate);
-                console.log(heli.velocity.x);
+                heli.velocity.movRate += 5*heli.velocity.x;
                 heli.pos.x = Math.cos(heli.velocity.movRate) * TRAJECTORY_RADIUS;
                 heli.pos.z = Math.sin(-heli.velocity.movRate) * TRAJECTORY_RADIUS;
                 break;
