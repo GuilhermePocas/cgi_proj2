@@ -20,12 +20,47 @@ let animation = true;   // Animation is running
 
 
 const HELICOPTER_LENGHT = 10;
-const TRAJECTORY_RADIUS = 30;
+const TRAJECTORY_RADIUS = 40;
+
+//scenery constants
 
 const FLOOR_SIZE = 140;
-const FLOOR_HEIGHT = 3;
+const FLOOR_HEIGHT = 4;
+const FLOOR_COLOR = vec3(71/255, 170/255, 40/255);
 
+const BUILDING_SIZE = 15;
+const BUILDING_MIN_HEIGHT = 10;
+const BUILDING_MAX_HEIGHT = 60;
 
+const NUM_TREES = 6;
+const TREE_TRUNK_RADIUS = 5;
+const TREE_LEAF_WIDTH = 10;
+const TREE_MIN_HEIGHT = 30;
+const TREE_MAX_HEIGHT = 50; 
+
+const LAKE_DIAMETER = 70;
+const LAKE_WIDTH = 0.01;
+const LAKE_COLOUR = vec3(5/255, 155/255, 161/255);
+
+const LILY_DIAMETER= 2.5;
+const LILY_WIDTH = 0.01;
+const LILY_COLOUR =vec3(1/255, 74/255, 30/255)
+
+const FISH_LENGTH = 4;
+const FISH_WIDTH = 1;
+const FISH_HEIGHT = 2;
+const FISH_COLOUR = vec3(196/255, 52/255, 49/255);
+
+const FISH_FIN_LENGTH = 1.5;
+const FISH_FIN_WIDTH = 0.25;
+const FISH_FIN_HEIGHT = 0.5;
+
+const FISH_EYE_RADIUS = 0.4;
+const FISH_EYE_COLOUR = vec3(0, 0, 0);
+const FISH_JUMP_RADIUS = 5;
+const FISH_JUMP_SPEED = 500;
+
+//helicopter constants
 
 const MAIN_ROTOR_MAX_SPEED = 5;
 const TAIL_ROTOR_MAX_SPEED = 10;
@@ -34,7 +69,6 @@ const BODY_COLOR = vec3(207/255, 25/255, 25/255);
 const BLADE_COLOR = vec3(250/255, 175/255, 25/255);
 const CYLINDER_COLOR = vec3(227/255, 182/255, 20/255);
 const BEAM_COLOR = vec3(133/255, 133/255, 133/255);
-const FLOOR_COLOR = vec3(71/255, 170/255, 40/255);
 
 const BLADE_LENGTH = 50;
 const BLADE_WIDTH = 5;
@@ -67,15 +101,7 @@ const HELICOPTER_MAX_SPEED = 0.025;
 const HELICOPTER_MAX_ANGLE = 30;
 
 
-const BUILDING_SIZE = 15;
-const BUILDING_MIN_HEIGHT = 10;
-const BUILDING_MAX_HEIGHT = HELICOPTER_MAX_HEIGHT-2;
 
-const NUM_TREES = 6;
-const TREE_TRUNK_RADIUS = 5;
-const TREE_LEAF_WIDTH = 10;
-const TREE_MIN_HEIGHT = 30;
-const TREE_MAX_HEIGHT = 50; 
 
 const VP_DISTANCE = 70;
 var currColor = vec3(0,0,0);
@@ -133,7 +159,7 @@ let selected_helicopter = 0;
 const gui = new GUI();
 gui.add(camera, "tetha", -180, 180, 1).name("Tetha");
 gui.add(camera, "alpha", -180, 180, 1).name("Alpha");
-gui.add(world, "scale", 0, 5, 0.1).name("World Scale");
+gui.add(world, "scale", 0, 10, 0.1).name("World Scale");
 
 let frontView = lookAt([0,0,-1], [0, 0, 0], [0, 1, 0]);
 let axometricView = frontView;
@@ -323,13 +349,16 @@ function setup(shaders)
     }
 
     function isInPath(x, z) {
-        return((Math.pow(x,2) + Math.pow(z,2)) < Math.pow(1.7*TRAJECTORY_RADIUS,2));
+        return((Math.pow(x,2) + Math.pow(z,2)) < Math.pow(1.6*TRAJECTORY_RADIUS,2));
     }
 
     function treeOverlaps(x, z) {
         for(var i=0; i<trees.length; i++) {
-
+            var dist = Math.sqrt(Math.pow(trees[i].pos.x - x, 2) + Math.pow(trees[i].pos.z - z,2));
+            if(dist < 2*TREE_LEAF_WIDTH)
+                return true;
         }
+        return false;
     }
 
     function uploadModelView()
@@ -542,7 +571,7 @@ function setup(shaders)
 
     function tree(tree) {
         pushMatrix();
-            multTranslation([tree.pos.x, FLOOR_HEIGHT/2 + tree.dimensions.height*(1/12), tree.pos.z])
+        multTranslation([tree.pos.x, FLOOR_HEIGHT/2 + tree.dimensions.height*(1/12), tree.pos.z])
             pushMatrix();
                 updateColor(tree.colour.logColour);
                 multScale([tree.dimensions.logRadius, tree.dimensions.height*(1/6), tree.dimensions.logRadius]);
@@ -569,6 +598,120 @@ function setup(shaders)
         popMatrix();
     }
 
+    function lily() {
+        pushMatrix();
+            updateColor(LILY_COLOUR);
+            multScale([LILY_DIAMETER, LILY_WIDTH, LILY_DIAMETER]);
+            uploadModelView();
+            CYLINDER.draw(gl, program, mode);
+        popMatrix();
+    }
+
+    function lilies() {
+        pushMatrix();
+            lily();
+        popMatrix();
+        pushMatrix();
+            multTranslation([LILY_DIAMETER*2, 0, 0]);
+            multScale([LILY_DIAMETER*(3/5), 0, LILY_DIAMETER*(3/5)]);
+            lily();
+        popMatrix();
+    }
+
+    function fin() {
+        pushMatrix();
+            updateColor(FISH_COLOUR);
+            multScale([ FISH_FIN_HEIGHT, FISH_FIN_LENGTH, FISH_FIN_WIDTH]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+    }
+
+    function eye(){
+        pushMatrix();
+            updateColor(FISH_EYE_COLOUR);
+            multScale([FISH_EYE_RADIUS, FISH_EYE_RADIUS, FISH_EYE_RADIUS]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+    }
+
+    function fish() {
+        pushMatrix();
+            updateColor(FISH_COLOUR);
+            multScale([FISH_LENGTH, FISH_HEIGHT, FISH_WIDTH]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([FISH_LENGTH/9, -FISH_HEIGHT/3, -FISH_WIDTH/2]);
+            multRotationZ(-10);
+            multRotationX(10);
+            fin();
+        popMatrix();
+        pushMatrix();
+            multTranslation([FISH_LENGTH/9, -FISH_HEIGHT/3, FISH_WIDTH/2]);
+            multRotationZ(-10);
+            multRotationX(-10);
+            fin();
+        popMatrix();
+        pushMatrix();
+            multTranslation([-FISH_LENGTH/2, 0, 0]);
+            multRotationZ(-70);
+            multScale([2, 2, 2]);
+            fin();
+        popMatrix();
+        pushMatrix();
+            multTranslation([-FISH_LENGTH/2, 0, 0]);
+            multRotationZ(70);
+            multScale([2, 2, 2]);
+            fin();
+        popMatrix();
+        pushMatrix();
+            multTranslation([FISH_LENGTH/4, FISH_HEIGHT/4, FISH_WIDTH/4]);
+            eye();
+        popMatrix();
+        pushMatrix();
+            multTranslation([FISH_LENGTH/4, FISH_HEIGHT/4, -FISH_WIDTH/4]);
+            eye();
+        popMatrix();
+    }
+
+    function jumpingFish() {
+        pushMatrix();
+            multRotationZ(-time * FISH_JUMP_SPEED);
+            multTranslation([FISH_JUMP_RADIUS, 0, 0]);
+            multRotationZ(-90);
+            fish();
+        popMatrix();
+    }
+
+    function lake() {
+        pushMatrix();
+            updateColor(LAKE_COLOUR);
+            multScale([LAKE_DIAMETER, LAKE_WIDTH, LAKE_DIAMETER]);
+            uploadModelView();
+            CYLINDER.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([0, LAKE_WIDTH, 0]);
+            pushMatrix();
+                multTranslation([LAKE_DIAMETER*(1/4), 0, LAKE_DIAMETER*(1/4)]);
+                lilies();
+            popMatrix();
+            pushMatrix();
+                multTranslation([LAKE_DIAMETER*(-1/6), 0, LAKE_DIAMETER*(-1/3)]);
+                lily();
+            popMatrix();
+        popMatrix();
+                multTranslation([LAKE_DIAMETER*(-1/6), 0, LAKE_DIAMETER*(1/8)]);
+                multRotationY(-45);
+                jumpingFish();
+
+        pushMatrix
+    }
+
+
     function floor() {
         pushMatrix();
             updateColor(FLOOR_COLOR);
@@ -577,13 +720,16 @@ function setup(shaders)
             CUBE.draw(gl, program, mode);
         popMatrix();
         pushMatrix();
-        /*if(drawBuildings)
-            for(const build of buildings)
-                building(build);
+            /*if(drawBuildings)
+                for(const build of buildings)
+                    building(build);
                 */
-        if(drawBuildings)
             for(const t of trees)
                 tree(t);
+        popMatrix();
+        pushMatrix();
+            multTranslation([0, FLOOR_HEIGHT/2, 0])
+            lake();
         popMatrix();
     }
 
@@ -621,6 +767,7 @@ function setup(shaders)
 
         multScale([world.scale, world.scale, world.scale]);
 
+        
         pushMatrix();
             floor();
         popMatrix();
@@ -630,6 +777,7 @@ function setup(shaders)
                 helicopter(heli);
             popMatrix();
         }
+
     }
 
     function updateColor(color) {
