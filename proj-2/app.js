@@ -63,7 +63,7 @@ const BODY_WIDTH = 1.5;
 
 const HELICOPTER_MAX_HEIGHT = 60;
 const HELICOPTER_MIN_HEIGHT = FLOOR_HEIGHT+BODY_HEIGHT+LANDING_BEAM_RADIUS;
-const HELICOPTER_MAX_SPEED = 2;
+const HELICOPTER_MAX_SPEED = 0.0025;
 const HELICOPTER_MAX_ANGLE = 30;
 
 
@@ -108,9 +108,11 @@ const HELICOPTER_ACTIONS = {
 
 const DEFAULT_SCALE = 2.6;
 const DEFAULT_VELOCITY = {
+    movRate: 0,
     x: 0,
     y: 0
 }
+
 
 const DEFAULT_ACCELERATION = 0;
 
@@ -200,13 +202,12 @@ function setup(shaders)
                 }
                 break;
             case 'ArrowDown':
-                let minHeight = HELICOPTER_MIN_HEIGHT;//getMinPossibleHeight(helicopters[selected_helicopter].pos);
                 console.log(helicopters[selected_helicopter].isInAir)
-                if(helicopters[selected_helicopter].pos.y >= minHeight) {
-                    if(minHeight <= helicopters[selected_helicopter].pos.y - 0.25)
+                if(helicopters[selected_helicopter].pos.y >= HELICOPTER_MIN_HEIGHT) {
+                    if(HELICOPTER_MIN_HEIGHT <= helicopters[selected_helicopter].pos.y - 0.25)
                         helicopters[selected_helicopter].pos.y -= 0.25;
                     else 
-                        helicopters[selected_helicopter].pos.y = minHeight;
+                        helicopters[selected_helicopter].pos.y = HELICOPTER_MIN_HEIGHT;
                     
                     updateHeliPos(HELICOPTER_ACTIONS.DESCENT, helicopters[selected_helicopter]);
                 }
@@ -214,7 +215,7 @@ function setup(shaders)
             case 'ArrowRight':
                 if(canMove(helicopters[selected_helicopter])){
                     if(helicopters[selected_helicopter].velocity.x < HELICOPTER_MAX_SPEED)
-                    helicopters[selected_helicopter].velocity.x += 0.01;
+                    helicopters[selected_helicopter].velocity.x += 0.0001;
                     updateHeliPos(HELICOPTER_ACTIONS.CLIMB, helicopters[selected_helicopter]);
                 }
                 break;
@@ -223,7 +224,7 @@ function setup(shaders)
                     if(helicopters[selected_helicopter].velocity.x <= 0)
                         helicopters[selected_helicopter].velocity.x = 0;
                     else
-                        helicopters[selected_helicopter].velocity.x -= 0.01;
+                        helicopters[selected_helicopter].velocity.x -= 0.0001;
                     updateHeliPos(HELICOPTER_ACTIONS.BACKWARD, helicopters[selected_helicopter]);
                 }
                 break;
@@ -565,9 +566,11 @@ function setup(shaders)
                 //heli.velocity.x = heli.velocity.abs * Math.cos((zx * (Math.PI/180)) * time);
                 //heli.velocity.y = heli.velocity.abs * Math.sin((zx * (Math.PI/180)) * time);            
 
-                //console.log(heli.velocity.x);
-                heli.pos.x = Math.cos(time * heli.velocity.x) * TRAJECTORY_RADIUS;
-                heli.pos.z = Math.sin(time * heli.velocity.x) * TRAJECTORY_RADIUS;
+                heli.velocity.movRate += time*heli.velocity.x;
+                console.log(heli.velocity.movRate);
+                console.log(heli.velocity.x);
+                heli.pos.x = Math.cos(heli.velocity.movRate) * TRAJECTORY_RADIUS;
+                heli.pos.z = Math.sin(-heli.velocity.movRate) * TRAJECTORY_RADIUS;
                 break;
             case HELICOPTER_ACTIONS.BACKWARD:
                 break;
