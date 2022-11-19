@@ -31,10 +31,10 @@ const MAIN_ROTOR_MAX_SPEED = 5;
 const TAIL_ROTOR_MAX_SPEED = 10;
 
 const BODY_COLOR = vec3(207/255, 25/255, 25/255);
-const BLADE_COLOR = vec3(17/255, 203/255, 240/255);
+const BLADE_COLOR = vec3(250/255, 175/255, 25/255);
 const CYLINDER_COLOR = vec3(227/255, 182/255, 20/255);
 const BEAM_COLOR = vec3(133/255, 133/255, 133/255);
-const FLOOR_COLOR = vec3(71/255, 133/255, 46/255);
+const FLOOR_COLOR = vec3(71/255, 170/255, 40/255);
 
 const BLADE_LENGTH = 50;
 const BLADE_WIDTH = 5;
@@ -57,7 +57,7 @@ const SUPPORT_BEAM_WIDTH = 0.15;
 const LANDING_BEAM_LENGTH = 4;
 const LANDING_BEAM_RADIUS = 0.30;
 
-const BODY_LENGHT = 5;
+const BODY_LENGTH = 5;
 const BODY_HEIGHT = 2;
 const BODY_WIDTH = 1.5;
 
@@ -70,6 +70,12 @@ const HELICOPTER_MAX_ANGLE = 30;
 const BUILDING_SIZE = 15;
 const BUILDING_MIN_HEIGHT = 10;
 const BUILDING_MAX_HEIGHT = HELICOPTER_MAX_HEIGHT-2;
+
+const NUM_TREES = 6;
+const TREE_TRUNK_RADIUS = 5;
+const TREE_LEAF_WIDTH = 10;
+const TREE_MIN_HEIGHT = 30;
+const TREE_MAX_HEIGHT = 50; 
 
 const VP_DISTANCE = 70;
 var currColor = vec3(0,0,0);
@@ -120,6 +126,8 @@ const DEFAULT_ACCELERATION = 0;
 
 let helicopters = [];
 let buildings = [];
+let trees = [];
+let lake = null;
 let selected_helicopter = 0;
 
 const gui = new GUI();
@@ -135,7 +143,7 @@ let povCamera = lookAt([1,0,0], [0, 0, 0], [0, 1, 0]);
 let currentview = axometricView;
 let isAxometric = true;
 let isPov = false;
-let drawBuildings = false;
+let drawBuildings = true;
 
 function setup(shaders)
 {
@@ -246,14 +254,16 @@ function setup(shaders)
         }
     }
 
-    gl.clearColor(0.0, 0.5, 1.0, 1.0);
+    gl.clearColor(17/255, 203/255, 240/255, 1.0);
     SPHERE.init(gl);
     CYLINDER.init(gl);
     CUBE.init(gl);
+    PYRAMID.init(gl);
     gl.enable(gl.DEPTH_TEST);   // Enables Z-buffer depth test
 
     helicopters.push(new HelicopterObject())
-    generateBuildings(6);
+    //generateBuildings(6);
+    generateTrees(NUM_TREES);
     
     window.requestAnimationFrame(render);
 
@@ -270,12 +280,55 @@ function setup(shaders)
 
     function generateBuildings(count){
         for(let i = 0; i < count; i++){
+            
+            var x;
+            var z;
+            do {
+                x = randomNumBetween(-FLOOR_SIZE/2+BUILDING_SIZE/2, FLOOR_SIZE/2-BUILDING_SIZE/2);
+                z = randomNumBetween(-FLOOR_SIZE/2+BUILDING_SIZE/2, FLOOR_SIZE/2-BUILDING_SIZE/2);
+                console.log(x);
+                console.log(z);
+            } while(isInPath(x,z))
+
             let build = new BuildingObject(
-                {x: randomNumBetween(-FLOOR_SIZE/2+BUILDING_SIZE/2, FLOOR_SIZE/2-BUILDING_SIZE/2), y: FLOOR_HEIGHT, z: randomNumBetween(-FLOOR_SIZE/2+BUILDING_SIZE/2, FLOOR_SIZE/2-BUILDING_SIZE/2)},
+                {x: x, z: z},
                 {height: randomNumBetween(BUILDING_MIN_HEIGHT, HELICOPTER_MAX_HEIGHT)},
                 {body: vec3(randomNumBetween(0, 1), randomNumBetween(0, 1), randomNumBetween(0, 1))}
             )
             buildings.push(build);
+        }
+    }
+
+    function generateTrees(count) {
+        for(let i = 0; i < count; i++){
+            
+            var x;
+            var z;
+            do {
+                x = randomNumBetween(-FLOOR_SIZE/2+TREE_TRUNK_RADIUS, FLOOR_SIZE/2-TREE_TRUNK_RADIUS/2);
+                z = randomNumBetween(-FLOOR_SIZE/2+TREE_TRUNK_RADIUS/2, FLOOR_SIZE/2-TREE_TRUNK_RADIUS/2);
+                console.log(x);
+                console.log(z);
+            } while(isInPath(x,z) || treeOverlaps(x, z))
+
+            let tree = new TreeObject(
+                {x: x, z: z},
+                {height: randomNumBetween(TREE_MIN_HEIGHT, TREE_MAX_HEIGHT),
+                logRadius: randomNumBetween(2, 4)},
+                {logColour: vec3(randomNumBetween(140/255, 150/255), randomNumBetween(50/255, 100/255), randomNumBetween(0, 40/255)),
+                leafColour: vec3(randomNumBetween(20/255, 50/255), randomNumBetween(50/255, 130/255), 0)}
+            )
+            trees.push(tree);
+        }
+    }
+
+    function isInPath(x, z) {
+        return((Math.pow(x,2) + Math.pow(z,2)) < Math.pow(1.7*TRAJECTORY_RADIUS,2));
+    }
+
+    function treeOverlaps(x, z) {
+        for(var i=0; i<trees.length; i++) {
+
         }
     }
 
@@ -438,7 +491,7 @@ function setup(shaders)
         pushMatrix();
             pushMatrix();
                 updateColor(heli.colours.body);
-                multScale([BODY_LENGHT, BODY_HEIGHT, BODY_WIDTH]);
+                multScale([BODY_LENGTH, BODY_HEIGHT, BODY_WIDTH]);
                 uploadModelView();
                 SPHERE.draw(gl, program, mode);
             popMatrix();
@@ -447,7 +500,7 @@ function setup(shaders)
                 tail(heli);
             popMatrix();
             pushMatrix();
-                multTranslation([BODY_LENGHT*(1/14), BODY_HEIGHT/2, 0]);
+                multTranslation([BODY_LENGTH*(1/14), BODY_HEIGHT/2, 0]);
                 rotor(heli);
             popMatrix();
             pushMatrix();
@@ -458,11 +511,11 @@ function setup(shaders)
 
     function helicopter(heli)
     {
-        multTranslation([heli.pos.x, heli.pos.y, heli.pos.z]);
-        multRotationX(heli.rotations.x);
-        multRotationY(heli.rotations.y);
-        multRotationZ(heli.rotations.z);
         pushMatrix();
+            multTranslation([heli.pos.x, heli.pos.y, heli.pos.z]);
+            multRotationX(heli.rotations.x);
+            multRotationY(heli.rotations.y);
+            multRotationZ(heli.rotations.z);
             multScale([heli.scale, heli.scale, heli.scale]);
             uploadModelView();
             helicopterBody(heli);
@@ -479,6 +532,43 @@ function setup(shaders)
         popMatrix();
     }
 
+    function leafs(color) {
+        pushMatrix();
+            updateColor(color);
+            uploadModelView();
+            PYRAMID.draw(gl, program, mode);
+        popMatrix();
+    }
+
+    function tree(tree) {
+        pushMatrix();
+            multTranslation([tree.pos.x, FLOOR_HEIGHT/2 + tree.dimensions.height*(1/12), tree.pos.z])
+            pushMatrix();
+                updateColor(tree.colour.logColour);
+                multScale([tree.dimensions.logRadius, tree.dimensions.height*(1/6), tree.dimensions.logRadius]);
+                uploadModelView();
+                CYLINDER.draw(gl, program, mode);
+            popMatrix();
+            pushMatrix();
+                multTranslation([0, tree.dimensions.height/2, 0]);
+                multScale([ TREE_LEAF_WIDTH, tree.dimensions.height*(5/6), TREE_LEAF_WIDTH]);
+                leafs(tree.colour.leafColour);
+            popMatrix();
+            pushMatrix();
+                multTranslation([0, tree.dimensions.height/2, 0]);
+                multRotationY(360/3);
+                multScale([ TREE_LEAF_WIDTH, tree.dimensions.height*(5/6), TREE_LEAF_WIDTH]);
+                leafs(tree.colour.leafColour);
+            popMatrix();
+            pushMatrix();
+                multTranslation([0, tree.dimensions.height/2, 0]);
+                multRotationY(360*(2/3));
+                multScale([ TREE_LEAF_WIDTH, tree.dimensions.height*(5/6), TREE_LEAF_WIDTH]);
+                leafs(tree.colour.leafColour);
+            popMatrix();
+        popMatrix();
+    }
+
     function floor() {
         pushMatrix();
             updateColor(FLOOR_COLOR);
@@ -486,9 +576,15 @@ function setup(shaders)
             uploadModelView();
             CUBE.draw(gl, program, mode);
         popMatrix();
-        if(drawBuildings)
+        pushMatrix();
+        /*if(drawBuildings)
             for(const build of buildings)
                 building(build);
+                */
+        if(drawBuildings)
+            for(const t of trees)
+                tree(t);
+        popMatrix();
     }
 
     function render()
@@ -518,7 +614,7 @@ function setup(shaders)
         //TODO not working, at all.
         //I have no idea what I'm doing
         if(isPov){
-            currentview = lookAt([0, 0, 0], [-helicopters[0].pos.x, -helicopters[0].pos.y, -helicopters[0].pos.z], [1,0,1])
+            currentview = lookAt([helicopters[0].pos.x, helicopters[0].pos.y, helicopters[0].pos.z], [0, 0, 0], [1,0,1])
         }
 
         uploadModelView();
@@ -660,6 +756,15 @@ class BuildingObject {
         this.dimensions = dimensions
         this.colours = colours
         this.scale = scale
+    }
+}
+
+class TreeObject {
+    constructor(pos, dimensions, colour, scale=1) {
+        this.pos = pos
+        this.dimensions = dimensions
+        this.colour = colour
+        this.scale = scale 
     }
 }
 
