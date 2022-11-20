@@ -32,7 +32,7 @@ const BUILDING_SIZE = 15;
 const BUILDING_MIN_HEIGHT = 10;
 const BUILDING_MAX_HEIGHT = 60;
 
-const NUM_TREES = 6;
+const NUM_TREES = 10;
 const TREE_TRUNK_RADIUS = 5;
 const TREE_LEAF_WIDTH = 10;
 const TREE_MIN_HEIGHT = 30;
@@ -55,10 +55,17 @@ const FISH_FIN_LENGTH = 1.5;
 const FISH_FIN_WIDTH = 0.25;
 const FISH_FIN_HEIGHT = 0.5;
 
-const FISH_EYE_RADIUS = 0.4;
-const FISH_EYE_COLOUR = vec3(0, 0, 0);
+const EYE_RADIUS = 0.4;
+const EYE_COLOUR = vec3(0, 0, 0);
 const FISH_JUMP_RADIUS = 5;
 const FISH_JUMP_SPEED = 500;
+
+const FROG_LENGTH = 3;
+const FROG_RADIUS = 1.5;
+const FROG_COLOUR = vec3(67/255, 222/255, 67/255);
+const CROACK_COLOUR = vec3(179/255, 237/255, 161/255);
+
+
 
 //helicopter constants
 
@@ -349,7 +356,7 @@ function setup(shaders)
     }
 
     function isInPath(x, z) {
-        return((Math.pow(x,2) + Math.pow(z,2)) < Math.pow(1.6*TRAJECTORY_RADIUS,2));
+        return((Math.pow(x,2) + Math.pow(z,2)) < Math.pow(1.5*TRAJECTORY_RADIUS,2));
     }
 
     function treeOverlaps(x, z) {
@@ -598,6 +605,85 @@ function setup(shaders)
         popMatrix();
     }
 
+    function frogCroack() {
+        pushMatrix();
+            updateColor(CROACK_COLOUR);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+    }
+
+    function frogHead() {
+        pushMatrix();
+            updateColor(FROG_COLOUR);
+            multScale([FROG_LENGTH*(2/3), FROG_RADIUS*(2/3), FROG_RADIUS]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([0, FROG_RADIUS*(2/6), FROG_RADIUS/4]);
+            multScale([1, 1/2, 1]);
+            eye();
+        popMatrix();
+        pushMatrix();
+            multTranslation([0, FROG_RADIUS*(2/6), -FROG_RADIUS/4]);
+            multScale([1, 1/2, 1]);
+            eye();
+        popMatrix();
+        pushMatrix();
+            var croackRate = 0.9 + Math.pow(Math.sin(time*2), 2);
+            multTranslation([-FROG_LENGTH*(2/12) + croackRate/3, -FROG_RADIUS*(2/6),0]);
+            multScale([croackRate, croackRate, croackRate])
+            frogCroack();
+        popMatrix();
+    }
+
+    function frogLeg() {
+        pushMatrix();
+            updateColor(FROG_COLOUR);
+            multScale([ FROG_RADIUS/4, FROG_LENGTH*(3/4), FROG_RADIUS/4]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+    }
+
+    function frog() {
+        pushMatrix();
+            updateColor(FROG_COLOUR);
+            multRotationZ(30);
+            multScale([FROG_LENGTH, FROG_RADIUS, FROG_RADIUS]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([FROG_LENGTH/2, FROG_LENGTH/3, 0]);
+            frogHead();
+        popMatrix();
+        pushMatrix();
+            multTranslation([FROG_LENGTH/4, -FROG_RADIUS/6, FROG_RADIUS/3]);
+            multScale([3/4, 3/4, 3/4]);
+            frogLeg();
+        popMatrix();
+        pushMatrix();
+            multTranslation([FROG_LENGTH/4, -FROG_RADIUS/6, -FROG_RADIUS/3]);
+            multScale([3/4, 3/4, 3/4]);
+            frogLeg();
+        popMatrix();
+        pushMatrix();
+            multTranslation([-FROG_LENGTH/4, -FROG_RADIUS/6, -FROG_RADIUS/2]);
+            multRotationX(-20);
+            multRotationZ(-20);
+            frogLeg();
+        popMatrix();
+        pushMatrix();
+            multTranslation([-FROG_LENGTH/4, -FROG_RADIUS/6, FROG_RADIUS/2]);
+            multRotationX(20);
+            multRotationZ(-20);
+            frogLeg();
+        popMatrix();
+
+    }
+
     function lily() {
         pushMatrix();
             updateColor(LILY_COLOUR);
@@ -613,9 +699,17 @@ function setup(shaders)
         popMatrix();
         pushMatrix();
             multTranslation([LILY_DIAMETER*2, 0, 0]);
-            multScale([LILY_DIAMETER*(3/5), 0, LILY_DIAMETER*(3/5)]);
-            lily();
+            pushMatrix() 
+                multScale([LILY_DIAMETER*(3/5), 0, LILY_DIAMETER*(3/5)]);
+                lily();
+            popMatrix();
+            pushMatrix();
+                multTranslation([0, FROG_LENGTH/3, 0]);
+                multRotationY(90);
+                frog();
+            popMatrix();
         popMatrix();
+        
     }
 
     function fin() {
@@ -629,8 +723,8 @@ function setup(shaders)
 
     function eye(){
         pushMatrix();
-            updateColor(FISH_EYE_COLOUR);
-            multScale([FISH_EYE_RADIUS, FISH_EYE_RADIUS, FISH_EYE_RADIUS]);
+            updateColor(EYE_COLOUR);
+            multScale([EYE_RADIUS, EYE_RADIUS, EYE_RADIUS]);
             uploadModelView();
             SPHERE.draw(gl, program, mode);
         popMatrix();
@@ -704,7 +798,7 @@ function setup(shaders)
                 lily();
             popMatrix();
         popMatrix();
-                multTranslation([LAKE_DIAMETER*(-1/6), 0, LAKE_DIAMETER*(1/8)]);
+                multTranslation([LAKE_DIAMETER*(-1/6), -FLOOR_HEIGHT/2, LAKE_DIAMETER*(1/8 )]);
                 multRotationY(-45);
                 jumpingFish();
 
