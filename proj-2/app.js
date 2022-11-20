@@ -111,7 +111,7 @@ const HELICOPTER_MAX_ANGLE = 30;
 
 
 const VP_DISTANCE = 70;
-var currColor = vec3(0,0,0);
+var heliModel = null;
 var camera = { tetha:-30, alpha:45};
 var world = {scale: 1}; 
 
@@ -160,7 +160,7 @@ const DEFAULT_ACCELERATION = 0;
 let helicopters = [];
 let buildings = [];
 let trees = [];
-let lake = null;
+let boxes = [];
 let selected_helicopter = 0;
 
 const gui = new GUI();
@@ -274,6 +274,7 @@ function setup(shaders)
                 }
                 break;
             case 'r':
+                generateBox();
                 break;
             case 'd':
                 break;
@@ -283,6 +284,9 @@ function setup(shaders)
                 break;
             case 'b':
                 drawBuildings = !drawBuildings;
+                break;
+            case "Space":
+                generateBox();
                 break;
         }
     }
@@ -366,6 +370,12 @@ function setup(shaders)
                 return true;
         }
         return false;
+    }
+
+    function generateBox() {
+        let box = new BoxObject()
+        box.pos = helicopters[selected_helicopter].pos;
+        boxes.push(box);
     }
 
     function uploadModelView()
@@ -548,6 +558,7 @@ function setup(shaders)
     function helicopter(heli)
     {
         pushMatrix();
+            heliModel = modelView();
             multTranslation([heli.pos.x, heli.pos.y, heli.pos.z]);
             multRotationX(heli.rotations.x);
             multRotationY(heli.rotations.y);
@@ -827,6 +838,19 @@ function setup(shaders)
         popMatrix();
     }
 
+
+    function heliBox(box) {
+        
+        pushMatrix();
+            updateColor(vec3(0,0,0));
+            multTranslation([box.pos.x, box.pos.y, box.pos.z]);
+            uploadModelView();
+            CUBE.draw(gl, program, mode);
+        popMatrix();
+    }
+
+
+
     function render()
     {
         if(animation) time += speed;
@@ -871,6 +895,11 @@ function setup(shaders)
                 helicopter(heli);
             popMatrix();
         }
+        for(const box of boxes) {
+            pushMatrix();
+                heliBox(box);
+            popMatrix();
+        }
 
     }
 
@@ -897,6 +926,7 @@ function setup(shaders)
                     heli.rotors_speeds.tail += heli.velocity.y;
                 heli.rotors_speeds.tailRate += heli.rotors_speeds.tail;
                 break;
+
             case HELICOPTER_ACTIONS.DESCENT:
 
                 if(heli.rotors_speeds.main < MAIN_ROTOR_MAX_SPEED)
@@ -913,6 +943,7 @@ function setup(shaders)
                     heli.rotors_speeds.tail = 0;
                 }
                 break;
+
             case HELICOPTER_ACTIONS.FORWARD:
                 heli.rotations.z = (HELICOPTER_MAX_ANGLE * heli.velocity.x)/HELICOPTER_MAX_SPEED;
                 heli.rotations.y = zx;
@@ -925,15 +956,13 @@ function setup(shaders)
                 if(heli.rotors_speeds.tail < TAIL_ROTOR_MAX_SPEED)
                     heli.rotors_speeds.tail += heli.velocity.x;
                 heli.rotors_speeds.tailRate += heli.rotors_speeds.tail;
-
-
-                //heli.velocity.x = heli.velocity.abs * Math.cos((zx * (Math.PI/180)) * time);
-                //heli.velocity.y = heli.velocity.abs * Math.sin((zx * (Math.PI/180)) * time);            
+            
 
                 heli.velocity.movRate += heli.velocity.x;
                 heli.pos.x = Math.cos(heli.velocity.movRate) * TRAJECTORY_RADIUS;
                 heli.pos.z = Math.sin(-heli.velocity.movRate) * TRAJECTORY_RADIUS;
                 break;
+
             case HELICOPTER_ACTIONS.BACKWARD:
                 heli.rotations.z = (HELICOPTER_MAX_ANGLE * heli.velocity.x)/HELICOPTER_MAX_SPEED;
                 heli.rotations.y = zx;
@@ -946,10 +975,7 @@ function setup(shaders)
                 if(heli.rotors_speeds.tail < TAIL_ROTOR_MAX_SPEED)
                     heli.rotors_speeds.tail -= heli.velocity.x;
                 heli.rotors_speeds.tailRate += heli.rotors_speeds.tail;
-
-
-                //heli.velocity.x = heli.velocity.abs * Math.cos((zx * (Math.PI/180)) * time);
-                //heli.velocity.y = heli.velocity.abs * Math.sin((zx * (Math.PI/180)) * time);            
+        
 
                 heli.velocity.movRate += heli.velocity.x;
                 heli.pos.x = Math.cos(heli.velocity.movRate) * TRAJECTORY_RADIUS;
@@ -987,7 +1013,9 @@ class HelicopterObject {
 
 class BoxObject{
     constructor(){
-
+        this.pos = DEFAULT_POS
+        this.colour = vec3(1, 1, 1);
+        this.velocity = DEFAULT_VELOCITY
     }
 }
 
