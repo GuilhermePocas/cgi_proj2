@@ -62,8 +62,8 @@ const FISH_JUMP_SPEED = 500;
 
 const FROG_LENGTH = 3;
 const FROG_RADIUS = 1.5;
-const FROG_COLOUR = vec3(67/255, 222/255, 67/255);
-const CROACK_COLOUR = vec3(179/255, 237/255, 161/255);
+const FROG_COLOUR = vec3(150/255, 247/255, 126/255);
+const CROACK_COLOUR = vec3(243/255, 255/255, 112/255);
 
 
 
@@ -238,21 +238,21 @@ function setup(shaders)
                 break;
             case 'ArrowUp':
                 if(helicopters[selected_helicopter].pos.y < HELICOPTER_MAX_HEIGHT) {
-                    helicopters[selected_helicopter].pos.y += 0.1;
+                    helicopters[selected_helicopter].pos.y += 0.2;
                     if(helicopters[selected_helicopter].velocity.y < HELICOPTER_MAX_SPEED)
-                        helicopters[selected_helicopter].velocity.y += 0.01;
+                        helicopters[selected_helicopter].velocity.y += 0.02;
                     updateHeliPos(HELICOPTER_ACTIONS.CLIMB, helicopters[selected_helicopter]);
                 }
                 break;
             case 'ArrowDown':
                 if(helicopters[selected_helicopter].pos.y >= HELICOPTER_MIN_HEIGHT) {
                     if(HELICOPTER_MIN_HEIGHT <= helicopters[selected_helicopter].pos.y - 0.1)
-                        helicopters[selected_helicopter].pos.y -= 0.1;
+                        helicopters[selected_helicopter].pos.y -= 0.2;
                     else 
                         helicopters[selected_helicopter].pos.y = HELICOPTER_MIN_HEIGHT;
                     
                     if(helicopters[selected_helicopter].velocity.y < HELICOPTER_MAX_SPEED)
-                        helicopters[selected_helicopter].velocity.y -= 0.01;
+                        helicopters[selected_helicopter].velocity.y -= 0.02;
 
                     updateHeliPos(HELICOPTER_ACTIONS.DESCENT, helicopters[selected_helicopter]);
                 }
@@ -323,8 +323,6 @@ function setup(shaders)
             do {
                 x = randomNumBetween(-FLOOR_SIZE/2+BUILDING_SIZE/2, FLOOR_SIZE/2-BUILDING_SIZE/2);
                 z = randomNumBetween(-FLOOR_SIZE/2+BUILDING_SIZE/2, FLOOR_SIZE/2-BUILDING_SIZE/2);
-                console.log(x);
-                console.log(z);
             } while(isInPath(x,z))
 
             let build = new BuildingObject(
@@ -344,8 +342,6 @@ function setup(shaders)
             do {
                 x = randomNumBetween(-FLOOR_SIZE/2+TREE_TRUNK_RADIUS, FLOOR_SIZE/2-TREE_TRUNK_RADIUS/2);
                 z = randomNumBetween(-FLOOR_SIZE/2+TREE_TRUNK_RADIUS/2, FLOOR_SIZE/2-TREE_TRUNK_RADIUS/2);
-                console.log(x);
-                console.log(z);
             } while(isInPath(x,z) || treeOverlaps(x, z))
 
             let tree = new TreeObject(
@@ -374,8 +370,17 @@ function setup(shaders)
 
     function generateBox() {
         let box = new BoxObject()
-        box.pos = helicopters[selected_helicopter].pos;
+        box.pos.x = helicopters[selected_helicopter].pos.x;
+        box.pos.y = helicopters[selected_helicopter].pos.y;
+        box.pos.z = helicopters[selected_helicopter].pos.z;
+        box.velocity.movRate = helicopters[selected_helicopter].velocity.movRate;
+        box.velocity.x = helicopters[selected_helicopter].velocity.x;
+        box.velocity.y = helicopters[selected_helicopter].velocity.y;
         boxes.push(box);
+    }
+
+    function dropBox() {
+
     }
 
     function uploadModelView()
@@ -558,7 +563,6 @@ function setup(shaders)
     function helicopter(heli)
     {
         pushMatrix();
-            heliModel = modelView();
             multTranslation([heli.pos.x, heli.pos.y, heli.pos.z]);
             multRotationX(heli.rotations.x);
             multRotationY(heli.rotations.y);
@@ -844,6 +848,7 @@ function setup(shaders)
         pushMatrix();
             updateColor(vec3(0,0,0));
             multTranslation([box.pos.x, box.pos.y, box.pos.z]);
+            multScale([box.dimensions.length, box.dimensions.height, box.dimensions.width]);
             uploadModelView();
             CUBE.draw(gl, program, mode);
         popMatrix();
@@ -897,6 +902,7 @@ function setup(shaders)
         }
         for(const box of boxes) {
             pushMatrix();
+                updateBoxPos(box)
                 heliBox(box);
             popMatrix();
         }
@@ -984,6 +990,28 @@ function setup(shaders)
         }
     } 
 
+    function updateBoxPos(box) {
+        if(box.pos.y > FLOOR_HEIGHT/2 + box.dimensions.height) {
+            box.velocity.y =+ 0.02;
+            box.velocity.yMovRate += box.velocity.y;
+            box.pos.y -= box.velocity.yMovRate;
+
+            //todo x speed
+            /*
+            let x = box.pos.x;
+            let z = box.pos.z;
+            let zx = Math.atan2(-z,x);
+            console.log(box.pos.x);
+
+            box.velocity.xMovRate += box.velocity.x
+            box.pos.x += box.velocity.xMovRate;
+            //box.pos.z += box.velocity.xMovRate;
+            */
+        }
+        else
+            box.pos.y = FLOOR_HEIGHT/2 + box.dimensions.height;
+    }
+
     /**
      * Returns a random number between max (inclusive) and min (inclusive)
      * @param {*} min min value
@@ -1012,10 +1040,12 @@ class HelicopterObject {
 }
 
 class BoxObject{
-    constructor(){
-        this.pos = DEFAULT_POS
+    constructor() {
+        this.pos = {x:0, y:0, z:0};
         this.colour = vec3(1, 1, 1);
-        this.velocity = DEFAULT_VELOCITY
+        this.dimensions = {length: 1, height:1, width:1};
+        this.velocity = {xMovRate: 0, x: 0, yMovRate: 0, y: 0}
+        
     }
 }
 
