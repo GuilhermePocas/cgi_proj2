@@ -1,5 +1,5 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../libs/utils.js";
-import { ortho, lookAt, flatten, mult, mat4, vec4, vec3, inverse } from "../libs/MV.js";
+import { ortho, lookAt, flatten, mult, mat4, vec4, vec3, inverse, perspective } from "../libs/MV.js";
 import { GUI } from "../libs/dat.gui.module.js";
 import {modelView, loadMatrix, multRotationY, multRotationX, multRotationZ, multTranslation, multScale, pushMatrix, popMatrix, multMatrix  } from "../libs/stack.js";
 
@@ -117,9 +117,8 @@ const BOX_SIZE = 2;
 
 
 const VP_DISTANCE = 70;
-var heliModel = null;
 var camera = { tetha:-30, alpha:45};
-var world = {scale: 1, wind: 1}; 
+var world = {scale: 1, wind: 1, fov: Math.PI/2}; 
 
 const DEFAULT_COLOURS = {
     blade : BLADE_COLOR,
@@ -170,11 +169,14 @@ let clouds = [];
 let boxes = [];
 let selected_helicopter = 0;
 
+var viewProjectionMatrix = mat4();
+
 const gui = new GUI();
 gui.add(camera, "tetha", -180, 180, 1).name("Tetha");
 gui.add(camera, "alpha", -180, 180, 1).name("Alpha");
 gui.add(world, "scale", 0, 5, 0.1).name("World Scale");
 gui.add(world, "wind", 0, 10, 0.1).name("Wind");
+gui.add(world, "fov", 0, 2*Math.PI, 0.1).name("FOV");
 
 let frontView = lookAt([0,0,-1], [0, 0, 0], [0, 1, 0]);
 let axometricView = frontView;
@@ -258,11 +260,8 @@ function setup(shaders)
                         helicopters[selected_helicopter].pos.y -= 0.2;
                     else 
                         helicopters[selected_helicopter].pos.y = HELICOPTER_MIN_HEIGHT;
-                    
-                    if(helicopters[selected_helicopter].velocity.y < HELICOPTER_MAX_SPEED)
-                        helicopters[selected_helicopter].velocity.y -= 0.02;
-
                     handleHeliMovement(HELICOPTER_ACTIONS.DESCENT, helicopters[selected_helicopter]);
+                    console.log(helicopters[selected_helicopter].isInAir);
                 }
                 break;
             case 'ArrowRight':
@@ -387,7 +386,6 @@ function setup(shaders)
                 randomNumBetween(0.5, 1.5));
             
             clouds.push(cloud);
-            console.log(cloud);
         }
     }
 
@@ -409,7 +407,7 @@ function setup(shaders)
 
     function uploadModelView()
     {
-        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(modelView()));
+        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(mult(viewProjectionMatrix, modelView())));
     }
 
     function canMove(heli){
@@ -911,12 +909,6 @@ function setup(shaders)
         gl.useProgram(program);
         
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
-
-        var transformMatrix = mat4(
-            vec4(1, 0, 0, 0),
-            vec4(0, 1, 0, 0),
-            vec4(0, 0, 0, 0),
-            vec4(0, 0, 0, 1));
         
         loadMatrix(currentview);
 
@@ -925,11 +917,20 @@ function setup(shaders)
             multRotationX(camera.tetha);
             multRotationY(camera.alpha);
         } 
-        //TODO not working, at all.
-        //I have no idea what I'm doing
         if(isPov){
-            currentview = lookAt([helicopters[0].pos.x, helicopters[0].pos.y, helicopters[0].pos.z], [0, 0, 0], [1,0,1])
+            var projectionMatrix = mat4(
+                vec4(1, 0, 0, helicopters[0].pos.x),
+                vec4(0, 1, 0, helicopters[0].pos.y),
+                vec4(0, 0, 1, helicopters[0].pos.z),
+                vec4(0, 0, 0, 1)
+            )
+
+            //viewProjectionMatrix = mult(projectionMatrix);
+            viewProjectionMatrix = mult(projectionMatrix, lookAt([helicopters[0].pos.x, helicopters[0].pos.y, helicopters[0].pos.z], [1, 0, helicopters[0].pos.z], [0, 1, 0]))
+            console.log({x: helicopters[0].pos.x, z:helicopters[0].pos.z});
         }
+        else
+            viewProjectionMatrix = mat4();
 
         uploadModelView();
 
@@ -941,19 +942,22 @@ function setup(shaders)
         popMatrix();
         for(const heli of helicopters){
             pushMatrix();
-                updateHeliPos(heli)
+                if(animation)
+                    updateHeliPos(heli)
                 helicopter(heli);
             popMatrix();
         }
         for(const box of boxes) {
             pushMatrix();
-                updateBoxPos(box)
+                if(animation)
+                    updateBoxPos(box)
                 heliBox(box);
             popMatrix();
         }
         for(const c of clouds) {
             pushMatrix();
-                updateClouds(c);
+                if(animation)
+                    updateClouds(c);
                 cloud(c);
             popMatrix();
         }
@@ -967,38 +971,47 @@ function setup(shaders)
     }
 
     function updateHeliPos(heli) {
-        let x = heli.pos.x;
-        let z = heli.pos.z;
-        let zx = (Math.atan2(-z,x) * 360) / (2*Math.PI) + 270;
-        zx %= 360;
-
-        heli.rotations.z = (HELICOPTER_MAX_ANGLE * heli.velocity.x)/HELICOPTER_MAX_SPEED;
-        heli.rotations.y = zx;
-        heli.rotations.x = (10 * heli.velocity.x)/HELICOPTER_MAX_SPEED;  
-
-        if(heli.rotors_speeds.main < MAIN_ROTOR_MAX_SPEED)
-        heli.rotors_speeds.main += heli.velocity.x;
-        heli.rotors_speeds.mainRate += heli.rotors_speeds.main;
-
-        if(heli.rotors_speeds.tail < TAIL_ROTOR_MAX_SPEED)
-        heli.rotors_speeds.tail += heli.velocity.x;
-        heli.rotors_speeds.tailRate += heli.rotors_speeds.tail;
-
-        heli.velocity.movRate += heli.velocity.x;
-        heli.pos.x = Math.cos(heli.velocity.movRate) * TRAJECTORY_RADIUS;
-        heli.pos.z = Math.sin(-heli.velocity.movRate) * TRAJECTORY_RADIUS;
-
         if(heli.isInAir){
             let x = heli.pos.x;
-            let y = heli.pos.y;
             let z = heli.pos.z;
-
-            heli.pos.x = x + Math.cos(time)*0.1*world.wind;
-            heli.pos.y = y + Math.cos(time)*0.0005*world.wind;
-            heli.pos.z = z + Math.cos(time)*0.1*world.wind;
+            let zx = (Math.atan2(-z,x) * 360) / (2*Math.PI) + 270;
+            zx %= 360;
+    
+            heli.rotations.z = (HELICOPTER_MAX_ANGLE * heli.velocity.x)/HELICOPTER_MAX_SPEED;
+            heli.rotations.y = zx;
+            heli.rotations.x = (10 * heli.velocity.x)/HELICOPTER_MAX_SPEED;  
+    
+            if(heli.rotors_speeds.main < MAIN_ROTOR_MAX_SPEED)
+            heli.rotors_speeds.main += heli.velocity.x;
+            heli.rotors_speeds.mainRate += heli.rotors_speeds.main;
+    
+            if(heli.rotors_speeds.tail < TAIL_ROTOR_MAX_SPEED)
+            heli.rotors_speeds.tail += heli.velocity.x;
+            heli.rotors_speeds.tailRate += heli.rotors_speeds.tail;
+    
+            heli.velocity.movRate += heli.velocity.x;
+            heli.pos.x = Math.cos(heli.velocity.movRate) * TRAJECTORY_RADIUS;
+            heli.pos.z = Math.sin(-heli.velocity.movRate) * TRAJECTORY_RADIUS;
+    
+            heli.pos.x += Math.cos(time)*0.1*Math.max(1, world.wind);
+            heli.pos.y += Math.cos(time)*0.0005*Math.max(1, world.wind);
+            heli.pos.z += Math.cos(time)*0.1*Math.max(1, world.wind);
+        }
+        else{
+            if(heli.rotors_speeds.main > 0){
+                heli.rotors_speeds.main -= 0.01;
+                heli.rotors_speeds.mainRate += heli.rotors_speeds.main;
+            }
+    
+            if(heli.rotors_speeds.tail > 0){
+                heli.rotors_speeds.tail -= 0.01;
+                heli.rotors_speeds.tailRate += heli.rotors_speeds.tail;
+            }
+            heli.rotors_speeds.main = Math.max(heli.rotors_speeds.main, 0)
+            heli.rotors_speeds.tail = Math.max(heli.rotors_speeds.tail, 0)
         }
     }
-    
+
     function handleHeliMovement(action, heli){
         let x = heli.pos.x;
         let z = heli.pos.z;
@@ -1007,7 +1020,11 @@ function setup(shaders)
 
         switch (action){
             case HELICOPTER_ACTIONS.CLIMB:
-                heli.isInAir = true;
+                if(!heli.isInAir){
+                    heli.rotors_speeds.main = 2;
+                    heli.rotors_speeds.tail = 4;
+                    heli.isInAir = true;
+                }
                 
                 if(heli.rotors_speeds.main < MAIN_ROTOR_MAX_SPEED)
                     heli.rotors_speeds.main += heli.velocity.y;
@@ -1028,11 +1045,9 @@ function setup(shaders)
                     heli.rotors_speeds.tail -= heli.velocity.y;
                 heli.rotors_speeds.tailRate += heli.rotors_speeds.tail;
 
-                if(heli.pos.y == HELICOPTER_MIN_HEIGHT) {
+                if(heli.pos.y <= HELICOPTER_MIN_HEIGHT)
                     heli.isInAir = false;
-                    heli.rotors_speeds.main = 0;
-                    heli.rotors_speeds.tail = 0;
-                }
+                
                 break;
 
             case HELICOPTER_ACTIONS.FORWARD:
