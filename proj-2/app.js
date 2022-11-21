@@ -58,16 +58,16 @@ const FISH_FIN_HEIGHT = 0.5;
 const EYE_RADIUS = 0.4;
 const EYE_COLOUR = vec3(0, 0, 0);
 const FISH_JUMP_RADIUS = 5;
-const FISH_JUMP_SPEED = 500;
+const FISH_JUMP_SPEED = 250;
 
 const FROG_LENGTH = 3;
 const FROG_RADIUS = 1.5;
 const FROG_COLOUR = vec3(150/255, 247/255, 126/255);
 const CROACK_COLOUR = vec3(243/255, 255/255, 112/255);
 
-const NUM_CLOUDS = 4;
+const NUM_CLOUDS = 6;
 const CLOUD_RADIUS = 10;
-const CLOUD_HEIGHT = 100;
+const CLOUD_HEIGHT = 80;
 const CLOUD_COLOUR = vec3(1, 1, 1);
 const CLOUD_MOVE_SPEED = 0.05;
 
@@ -261,7 +261,6 @@ function setup(shaders)
                     else 
                         helicopters[selected_helicopter].pos.y = HELICOPTER_MIN_HEIGHT;
                     handleHeliMovement(HELICOPTER_ACTIONS.DESCENT, helicopters[selected_helicopter]);
-                    console.log(helicopters[selected_helicopter].isInAir);
                 }
                 break;
             case 'ArrowRight':
@@ -357,7 +356,8 @@ function setup(shaders)
                 {height: randomNumBetween(TREE_MIN_HEIGHT, TREE_MAX_HEIGHT),
                 logRadius: randomNumBetween(2, 4)},
                 {logColour: vec3(randomNumBetween(140/255, 150/255), randomNumBetween(50/255, 100/255), randomNumBetween(0, 40/255)),
-                leafColour: vec3(randomNumBetween(20/255, 50/255), randomNumBetween(50/255, 130/255), 0)}
+                leafColour: vec3(randomNumBetween(20/255, 50/255), randomNumBetween(50/255, 130/255), 0)},
+                {shakeOffset: randomNumBetween(0, Math.PI*2), shakeRate: 0}
             )
             trees.push(tree);
         }
@@ -615,7 +615,7 @@ function setup(shaders)
 
     function tree(tree) {
         pushMatrix();
-        multTranslation([tree.pos.x, FLOOR_HEIGHT/2 + tree.dimensions.height*(1/12), tree.pos.z])
+        multTranslation([tree.pos.x, FLOOR_HEIGHT/2 + tree.dimensions.height*(1/12), tree.pos.z]);
             pushMatrix();
                 updateColor(tree.colour.logColour);
                 multScale([tree.dimensions.logRadius, tree.dimensions.height*(1/6), tree.dimensions.logRadius]);
@@ -623,21 +623,25 @@ function setup(shaders)
                 CYLINDER.draw(gl, program, mode);
             popMatrix();
             pushMatrix();
-                multTranslation([0, tree.dimensions.height/2, 0]);
-                multScale([ TREE_LEAF_WIDTH, tree.dimensions.height*(5/6), TREE_LEAF_WIDTH]);
-                leafs(tree.colour.leafColour);
-            popMatrix();
-            pushMatrix();
-                multTranslation([0, tree.dimensions.height/2, 0]);
-                multRotationY(360/3);
-                multScale([ TREE_LEAF_WIDTH, tree.dimensions.height*(5/6), TREE_LEAF_WIDTH]);
-                leafs(tree.colour.leafColour);
-            popMatrix();
-            pushMatrix();
-                multTranslation([0, tree.dimensions.height/2, 0]);
-                multRotationY(360*(2/3));
-                multScale([ TREE_LEAF_WIDTH, tree.dimensions.height*(5/6), TREE_LEAF_WIDTH]);
-                leafs(tree.colour.leafColour);
+                tree.shake.shakeRate += world.wind*0.01;
+                multRotationX(Math.sin(tree.shake.shakeOffset + tree.shake.shakeRate)*world.wind*0.2);
+                pushMatrix();
+                    multTranslation([0, tree.dimensions.height/2, 0]);
+                    multScale([ TREE_LEAF_WIDTH, tree.dimensions.height*(5/6), TREE_LEAF_WIDTH]);
+                    leafs(tree.colour.leafColour);
+                popMatrix();
+                pushMatrix();
+                    multTranslation([0, tree.dimensions.height/2, 0]);
+                    multRotationY(360/3);
+                    multScale([ TREE_LEAF_WIDTH, tree.dimensions.height*(5/6), TREE_LEAF_WIDTH]);
+                    leafs(tree.colour.leafColour);
+                popMatrix();
+                pushMatrix();
+                    multTranslation([0, tree.dimensions.height/2, 0]);
+                    multRotationY(360*(2/3));
+                    multScale([ TREE_LEAF_WIDTH, tree.dimensions.height*(5/6), TREE_LEAF_WIDTH]);
+                    leafs(tree.colour.leafColour);
+                popMatrix();
             popMatrix();
         popMatrix();
     }
@@ -732,10 +736,11 @@ function setup(shaders)
 
     function lilies() {
         pushMatrix();
+            multTranslation([0, 0, Math.sin(1.0 + time*2)]);
             lily();
         popMatrix();
         pushMatrix();
-            multTranslation([LILY_DIAMETER*2, 0, 0]);
+            multTranslation([LILY_DIAMETER*2, 0, Math.sin(time*2)]);
             pushMatrix() 
                 multScale([LILY_DIAMETER*(3/5), 0, LILY_DIAMETER*(3/5)]);
                 lily();
@@ -831,7 +836,7 @@ function setup(shaders)
                 lilies();
             popMatrix();
             pushMatrix();
-                multTranslation([LAKE_DIAMETER*(-1/6), 0, LAKE_DIAMETER*(-1/3)]);
+                multTranslation([LAKE_DIAMETER*(-1/6) + Math.sin(2.0 + time*2), 0, LAKE_DIAMETER*(-1/3)]);
                 lily();
             popMatrix();
         popMatrix();
@@ -1153,7 +1158,7 @@ class BoxObject{
         this.pos = {x:0, y:0, z:0};
         this.colour = vec3(1, 1, 1);
         this.dimensions = {length: BOX_SIZE, height:BOX_SIZE, width:BOX_SIZE};
-        this.velocity = {xMovRate: 0, x: 0, yMovRate: 0, y: 0};
+        this.velocity = {xMovRate: 0, x: 0, yMovRate: 0, y: 0};wind
         this.rotations = {y: 0}
     }
 }
@@ -1169,11 +1174,12 @@ class BuildingObject {
 }
 
 class TreeObject {
-    constructor(pos, dimensions, colour, scale=1) {
+    constructor(pos, dimensions, colour, shake, scale=1,) {
         this.pos = pos
         this.dimensions = dimensions
         this.colour = colour
-        this.scale = scale 
+        this.scale = scale
+        this.shake = shake
     }
 }
 
