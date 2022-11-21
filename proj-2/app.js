@@ -65,6 +65,12 @@ const FROG_RADIUS = 1.5;
 const FROG_COLOUR = vec3(150/255, 247/255, 126/255);
 const CROACK_COLOUR = vec3(243/255, 255/255, 112/255);
 
+const NUM_CLOUDS = 4;
+const CLOUD_RADIUS = 10;
+const CLOUD_HEIGHT = 100;
+const CLOUD_COLOUR = vec3(1, 1, 1);
+const CLOUD_MOVE_SPEED = 0.05;
+
 
 
 //helicopter constants
@@ -160,13 +166,14 @@ const DEFAULT_ACCELERATION = 0;
 let helicopters = [];
 let buildings = [];
 let trees = [];
+let clouds = [];
 let boxes = [];
 let selected_helicopter = 0;
 
 const gui = new GUI();
 gui.add(camera, "tetha", -180, 180, 1).name("Tetha");
 gui.add(camera, "alpha", -180, 180, 1).name("Alpha");
-gui.add(world, "scale", 0, 10, 0.1).name("World Scale");
+gui.add(world, "scale", 0, 5, 0.1).name("World Scale");
 
 let frontView = lookAt([0,0,-1], [0, 0, 0], [0, 1, 0]);
 let axometricView = frontView;
@@ -301,6 +308,7 @@ function setup(shaders)
     helicopters.push(new HelicopterObject())
     //generateBuildings(6);
     generateTrees(NUM_TREES);
+    generateClouds(NUM_CLOUDS);
     
     window.requestAnimationFrame(render);
 
@@ -366,6 +374,20 @@ function setup(shaders)
                 return true;
         }
         return false;
+    }
+
+    function generateClouds(count) {
+        for(let i = 0; i < count; i++){
+
+            let cloud = new CloudObject(
+                {x: randomNumBetween(-FLOOR_SIZE/2, FLOOR_SIZE/2), z: randomNumBetween(-FLOOR_SIZE/2, FLOOR_SIZE/2)},
+                randomNumBetween(0, 180),
+                randomNumBetween(CLOUD_RADIUS*0.5, CLOUD_RADIUS*2.0),
+                randomNumBetween(0.5, 1.5));
+            
+            clouds.push(cloud);
+            console.log(cloud);
+        }
     }
 
     function generateBox() {
@@ -820,6 +842,34 @@ function setup(shaders)
         pushMatrix
     }
 
+    function cloud(c) {
+        pushMatrix();
+            multTranslation([c.pos.x, CLOUD_HEIGHT, c.pos.z]);
+            multRotationY(c.rotation);
+            pushMatrix();
+                updateColor(CLOUD_COLOUR);
+                multScale([c.scale*2, c.scale*2, c.scale*2]);
+                uploadModelView();
+                SPHERE.draw(gl, program, mode);
+            popMatrix();
+            pushMatrix();
+                updateColor(CLOUD_COLOUR);
+                multTranslation([c.scale, 0, 0]);
+                multScale([c.scale*1.5, c.scale*1.5, c.scale*1.5]);
+                uploadModelView();
+                SPHERE.draw(gl, program, mode);
+            popMatrix();
+            pushMatrix();
+                updateColor(CLOUD_COLOUR);
+                multTranslation([-c.scale, 0, 0]);
+                multScale([c.scale*1.25, c.scale*1.25, c.scale*1.25]);
+                uploadModelView();
+                SPHERE.draw(gl, program, mode);
+            popMatrix();
+        popMatrix();
+    }
+    
+
 
     function floor() {
         pushMatrix();
@@ -906,6 +956,12 @@ function setup(shaders)
                 heliBox(box);
             popMatrix();
         }
+        for(const c of clouds) {
+            pushMatrix();
+                updateClouds(c);
+                cloud(c);
+            popMatrix();
+        }
 
     }
 
@@ -990,6 +1046,18 @@ function setup(shaders)
         }
     } 
 
+    function updateClouds(c) {
+        console.log(c.pos.z);
+        c.pos.z+=c.speed*CLOUD_MOVE_SPEED;
+        if(c.pos.z > FLOOR_SIZE*2) {
+            c.pos.x = randomNumBetween(-FLOOR_SIZE/2, FLOOR_SIZE/2);
+            c.pos.z = -FLOOR_SIZE*2;
+            c.rotation = randomNumBetween(0, 180);
+            c.scale = randomNumBetween(CLOUD_RADIUS*0.5, CLOUD_RADIUS*2.0);
+            c.speed = randomNumBetween(0.5, 1.5);
+        }
+    }
+
     function updateBoxPos(box) {
         if(box.pos.y > FLOOR_HEIGHT/2 + box.dimensions.height) {
             box.velocity.y =+ 0.02;
@@ -1065,6 +1133,15 @@ class TreeObject {
         this.dimensions = dimensions
         this.colour = colour
         this.scale = scale 
+    }
+}
+
+class CloudObject {
+    constructor(pos, rotation, scale, speed) {
+        this.pos = pos
+        this.rotation = rotation
+        this.scale = scale
+        this.speed = speed
     }
 }
 
