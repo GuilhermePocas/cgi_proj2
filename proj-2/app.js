@@ -119,7 +119,7 @@ const HELICOPTER_MAX_ANGLE = 30;
 const VP_DISTANCE = 70;
 var heliModel = null;
 var camera = { tetha:-30, alpha:45};
-var world = {scale: 1}; 
+var world = {scale: 1, wind: 1}; 
 
 const DEFAULT_COLOURS = {
     blade : BLADE_COLOR,
@@ -174,6 +174,7 @@ const gui = new GUI();
 gui.add(camera, "tetha", -180, 180, 1).name("Tetha");
 gui.add(camera, "alpha", -180, 180, 1).name("Alpha");
 gui.add(world, "scale", 0, 5, 0.1).name("World Scale");
+gui.add(world, "wind", 0, 10, 0.1).name("Wind");
 
 let frontView = lookAt([0,0,-1], [0, 0, 0], [0, 1, 0]);
 let axometricView = frontView;
@@ -868,8 +869,6 @@ function setup(shaders)
             popMatrix();
         popMatrix();
     }
-    
-
 
     function floor() {
         pushMatrix();
@@ -894,7 +893,6 @@ function setup(shaders)
 
 
     function heliBox(box) {
-        
         pushMatrix();
             updateColor(vec3(0,0,0));
             multTranslation([box.pos.x, box.pos.y, box.pos.z]);
@@ -1044,11 +1042,20 @@ function setup(shaders)
                 heli.pos.z = Math.sin(-heli.velocity.movRate) * TRAJECTORY_RADIUS;
                 break;
         }
+
+        if(heli.isInAir){
+            let x = heli.pos.x;
+            let y = heli.pos.y;
+            let z = heli.pos.z;
+
+            heli.pos.x = x + Math.cos(time)*0.1*world.wind;
+            heli.pos.y = y + Math.cos(time)*0.0005*world.wind;
+            heli.pos.z = z + Math.cos(time)*0.1*world.wind;
+        }
     } 
 
     function updateClouds(c) {
-        console.log(c.pos.z);
-        c.pos.z+=c.speed*CLOUD_MOVE_SPEED;
+        c.pos.z+=c.speed*CLOUD_MOVE_SPEED * world.wind;
         if(c.pos.z > FLOOR_SIZE*2) {
             c.pos.x = randomNumBetween(-FLOOR_SIZE/2, FLOOR_SIZE/2);
             c.pos.z = -FLOOR_SIZE*2;
