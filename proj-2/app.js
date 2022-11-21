@@ -1106,16 +1106,20 @@ function setup(shaders)
     }
 
     function updateBoxPos(box) {
-        if(box.pos.y > FLOOR_HEIGHT/2 + box.dimensions.height/2) {
-            box.velocity.y =+ 0.01;
-            box.velocity.yMovRate += box.velocity.y;
-            box.pos.y -= box.velocity.yMovRate;
+        if(box.life < 5) {
+            box.life = time - box.startTime
+            if(box.pos.y > FLOOR_HEIGHT/2 + box.dimensions.height/2) {
+                box.velocity.y =+ 0.01;
+                box.velocity.yMovRate += box.velocity.y;
+                box.pos.y -= box.velocity.yMovRate;
 
-            box.pos.x += box.velocity.x * Math.sin(degToRad(box.rotations.y+270)) * 10;
-            box.pos.z += box.velocity.x * Math.cos(degToRad(box.rotations.y+270)) * 10;
-        }
-        else
-            box.pos.y = FLOOR_HEIGHT/2 + box.dimensions.height/2;
+                box.pos.x += box.velocity.x * Math.sin(degToRad(box.rotations.y+270)) * 20;
+                box.pos.z += box.velocity.x * Math.cos(degToRad(box.rotations.y+270)) * 20;
+            }
+            else
+                box.pos.y = FLOOR_HEIGHT/2 + box.dimensions.height/2;
+        } else
+            boxes.splice(boxes.indexOf(box),1);
     }
 
     /**
@@ -1158,8 +1162,10 @@ class BoxObject{
         this.pos = {x:0, y:0, z:0};
         this.colour = vec3(1, 1, 1);
         this.dimensions = {length: BOX_SIZE, height:BOX_SIZE, width:BOX_SIZE};
-        this.velocity = {xMovRate: 0, x: 0, yMovRate: 0, y: 0};wind
-        this.rotations = {y: 0}
+        this.velocity = {xMovRate: 0, x: 0, yMovRate: 0, y: 0};
+        this.rotations = {y: 0};
+        this.life = 0;
+        this.startTime = time;
     }
 }
 
