@@ -1,7 +1,7 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from "../libs/utils.js";
 import { ortho, lookAt, flatten, mult, mat4, vec4, vec3, inverse, perspective } from "../libs/MV.js";
 import { GUI } from "../libs/dat.gui.module.js";
-import {modelView, loadMatrix, multRotationY, multRotationX, multRotationZ, multTranslation, multScale, pushMatrix, popMatrix, multMatrix  } from "../libs/stack.js";
+import {modelView, loadMatrix, multRotationY, multRotationX, multRotationZ, multTranslation, multScale, pushMatrix, popMatrix, multMatrix} from "../libs/stack.js";
 
 import * as SPHERE from '../../libs/objects/sphere.js';
 import * as CUBE from '../../libs/objects/cube.js';
@@ -114,6 +114,7 @@ const HELICOPTER_MAX_SPEED = 0.025;
 const HELICOPTER_MAX_ANGLE = 30;
 
 const BOX_SIZE = 2;
+const BOX_COLOUR = vec3(194/255, 115/255, 19/255);
 
 
 const VP_DISTANCE = 70;
@@ -197,7 +198,7 @@ function setup(shaders)
 
     let program = buildProgramFromSources(gl, shaders["shader.vert"], shaders["shader.frag"]);
 
-    let mProjection = ortho(-VP_DISTANCE*aspect,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE,3*VP_DISTANCE);
+    let mProjection = perspective(-VP_DISTANCE*aspect,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE,3*VP_DISTANCE);
 
     mode = gl.TRIANGLES; 
 
@@ -230,11 +231,12 @@ function setup(shaders)
             case '2':
                 currentview = frontView;
                 isAxometric = false;
-                isPov = isPov;
+                isPov = false;
                 break;
             case '3':
                 currentview = upView;
                 isAxometric = false;
+                isPov = false;
                 break;
             case '4':
                 currentview = rigthView;
@@ -893,7 +895,7 @@ function setup(shaders)
 
     function heliBox(box) {
         pushMatrix();
-            updateColor(vec3(0,0,0));
+            updateColor(box.colour);
             multTranslation([box.pos.x, box.pos.y, box.pos.z]);
             multRotationY(box.rotations.y);
             multScale([box.dimensions.length, box.dimensions.height, box.dimensions.width]);
@@ -923,16 +925,18 @@ function setup(shaders)
             multRotationY(camera.alpha);
         } 
         if(isPov){
-            var projectionMatrix = mat4(
-                vec4(1, 0, 0, helicopters[0].pos.x),
-                vec4(0, 1, 0, helicopters[0].pos.y),
-                vec4(0, 0, 1, helicopters[0].pos.z),
-                vec4(0, 0, 0, 1)
-            )
-
             //viewProjectionMatrix = mult(projectionMatrix);
-            viewProjectionMatrix = mult(projectionMatrix, lookAt([helicopters[0].pos.x, helicopters[0].pos.y, helicopters[0].pos.z], [1, 0, helicopters[0].pos.z], [0, 1, 0]))
-            console.log({x: helicopters[0].pos.x, z:helicopters[0].pos.z});
+            let mModelView = modelView();
+            let mView = lookAt([helicopters[0].pos.x, -helicopters[0].pos.y, helicopters[0].pos.z],
+                [0, 1, 0], [0, 1, 0]);
+            let mModel = mult(inverse(mView), mModelView);
+
+            let mEye = mult(mModel, vec4(0, 0, 0, 1));
+            let mAt = mult(mModel, vec4(1, 0, 0, 1));
+            viewProjectionMatrix = lookAt([mEye[0], mEye[1], mEye[2]], [mAt[0], mAt[1], mAt[2]], [0, 1, 0]);
+            console.log(helicopters[0].pos.y);
+            /*currentview = lookAt([helicopters[0].pos.x, helicopters[0].pos.y, helicopters[0].pos.z],
+                [helicopters[0].pos.x, helicopters[0].pos.y, helicopters[0].pos.z], [0, 1, 0]);*/
         }
         else
             viewProjectionMatrix = mat4();
@@ -1160,7 +1164,7 @@ class HelicopterObject {
 class BoxObject{
     constructor() {
         this.pos = {x:0, y:0, z:0};
-        this.colour = vec3(1, 1, 1);
+        this.colour = BOX_COLOUR;
         this.dimensions = {length: BOX_SIZE, height:BOX_SIZE, width:BOX_SIZE};
         this.velocity = {xMovRate: 0, x: 0, yMovRate: 0, y: 0};
         this.rotations = {y: 0};
