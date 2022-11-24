@@ -119,9 +119,9 @@ const BOX_SIZE = 2;
 const BOX_COLOUR = vec3(194/255, 115/255, 19/255);
 
 
-const VP_DISTANCE = 70;
+const VP_DISTANCE = 75;
 var camera = { tetha:-30, alpha:45};
-var world = {scale: 1, wind: 1, fov: Math.PI/2}; 
+var world = {scale: 1, wind: 1, fov: 90}; 
 
 const DEFAULT_COLOURS = {
     blade : BLADE_COLOR,
@@ -179,7 +179,7 @@ gui.add(camera, "tetha", -180, 180, 1).name("Tetha");
 gui.add(camera, "alpha", -180, 180, 1).name("Alpha");
 gui.add(world, "scale", 0, 5, 0.1).name("World Scale");
 gui.add(world, "wind", 0, 10, 0.1).name("Wind");
-gui.add(world, "fov", 0, 2*Math.PI, 0.1).name("FOV");
+gui.add(world, "fov", 0, 180, 1).name("FOV");
 
 let frontView = lookAt([0,0,-1], [0, 0, 0], [0, 1, 0]);
 let axometricView = frontView;
@@ -200,8 +200,7 @@ function setup(shaders)
 
     let program = buildProgramFromSources(gl, shaders["shader.vert"], shaders["shader.frag"]);
 
-    //let mProjection = perspective(-VP_DISTANCE*aspect,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE,3*VP_DISTANCE);
-    let mProjection = perspective(90,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE);
+    let mProjection = ortho(-VP_DISTANCE*aspect,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE,3*VP_DISTANCE);
 
     mode = gl.TRIANGLES; 
 
@@ -230,31 +229,31 @@ function setup(shaders)
                 currentview = axometricView;
                 isAxometric = true;
                 isPov = false;
-                mProjection = perspective(90,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE);
+                mProjection = ortho(-VP_DISTANCE*aspect,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE,3*VP_DISTANCE);
                 break;
             case '2':
                 currentview = frontView;
                 isAxometric = false;
                 isPov = false;
-                mProjection = perspective(90,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE);
+                mProjection = ortho(-VP_DISTANCE*aspect,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE,3*VP_DISTANCE);
                 break;
             case '3':
                 currentview = upView;
                 isAxometric = false;
                 isPov = false;
-                mProjection = perspective(90,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE);
+                mProjection = ortho(-VP_DISTANCE*aspect,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE,3*VP_DISTANCE);
                 break;
             case '4':
                 currentview = rigthView;
                 isAxometric = false;
                 isPov = false;
-                mProjection = perspective(90,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE);
+                mProjection = ortho(-VP_DISTANCE*aspect,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE,3*VP_DISTANCE);
                 break;
             case '5':
                 currentview = povCamera;
                 isAxometric = false;
                 isPov = true;
-                mProjection = perspective(90,aspect, 1, VP_DISTANCE, 4*90);
+                mProjection = perspective(world.fov,aspect, 1, VP_DISTANCE*2, 4*world.fov);
                 break;
             case 'ArrowUp':
                 if(helicopters[selected_helicopter].pos.y < HELICOPTER_MAX_HEIGHT) {
@@ -1026,25 +1025,13 @@ function setup(shaders)
             multRotationY(camera.alpha);
         } 
         if(isPov){
-            //viewProjectionMatrix = mult(projectionMatrix);
-            /*let mModelView = modelView();
-            let mView = lookAt([helicopters[0].pos.x, -helicopters[0].pos.y, helicopters[0].pos.z],
-                [0, 1, 0], [0, 1, 0]);
-            let mModel = mult(inverse(mView), mModelView);
-
-            let mEye = mult(mModel, vec4(0, 0, 0, 1));
-            let mAt = mult(mModel, vec4(1, 0, 0, 1));
-            viewProjectionMatrix = lookAt([mEye[0], mEye[1], mEye[2]], [mAt[0], mAt[1], mAt[2]], [0, 1, 0]);
-            console.log(helicopters[0].pos.y);*/
-            let zx = Math.atan2(-helicopters[0].pos.z, helicopters[0].pos.x);
-            console.log(zx);
-            let eye = [helicopters[0].pos.x, helicopters[0].pos.y, helicopters[0].pos.z - 10];
-            let at = [helicopters[0].pos.x * Math.cos(zx) + 10, helicopters[0].pos.y, helicopters[0].pos.z * Math.sin(zx) + 10];
+            mProjection = perspective(world.fov,aspect, 1, 4*world.fov);
+            let zx = helicopters[0].rotations.y;
+            let eye = [helicopters[0].pos.x, helicopters[0].pos.y-5, helicopters[0].pos.z];
+            let at = [helicopters[0].pos.x+10*Math.sin(degToRad(zx+270)), helicopters[0].pos.y, helicopters[0].pos.z+10*Math.cos(degToRad(zx+270))];
             let up = [0, 1, 0];
             currentview = lookAt(eye, at, up);
         }
-        else
-            viewProjectionMatrix = mat4();
 
         uploadModelView();
 
