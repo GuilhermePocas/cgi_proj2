@@ -201,7 +201,7 @@ function setup(shaders)
     let program = buildProgramFromSources(gl, shaders["shader.vert"], shaders["shader.frag"]);
 
     //let mProjection = perspective(-VP_DISTANCE*aspect,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE,3*VP_DISTANCE);
-    let mProjection = perspective(90,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE,3*VP_DISTANCE);
+    let mProjection = perspective(90,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE);
 
     mode = gl.TRIANGLES; 
 
@@ -230,26 +230,31 @@ function setup(shaders)
                 currentview = axometricView;
                 isAxometric = true;
                 isPov = false;
+                mProjection = perspective(90,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE);
                 break;
             case '2':
                 currentview = frontView;
                 isAxometric = false;
                 isPov = false;
+                mProjection = perspective(90,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE);
                 break;
             case '3':
                 currentview = upView;
                 isAxometric = false;
                 isPov = false;
+                mProjection = perspective(90,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE);
                 break;
             case '4':
                 currentview = rigthView;
                 isAxometric = false;
                 isPov = false;
+                mProjection = perspective(90,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE);
                 break;
             case '5':
                 currentview = povCamera;
                 isAxometric = false;
                 isPov = true;
+                mProjection = perspective(90,aspect, 1, VP_DISTANCE, 4*90);
                 break;
             case 'ArrowUp':
                 if(helicopters[selected_helicopter].pos.y < HELICOPTER_MAX_HEIGHT) {
@@ -1033,8 +1038,8 @@ function setup(shaders)
             console.log(helicopters[0].pos.y);*/
             let zx = Math.atan2(-helicopters[0].pos.z, helicopters[0].pos.x);
             console.log(zx);
-            let eye = [helicopters[0].pos.x, helicopters[0].pos.y, helicopters[0].pos.z];
-            let at = [helicopters[0].pos.x * Math.cos(zx), helicopters[0].pos.y, helicopters[0].pos.z * Math.sin(zx)];
+            let eye = [helicopters[0].pos.x, helicopters[0].pos.y, helicopters[0].pos.z - 10];
+            let at = [helicopters[0].pos.x * Math.cos(zx) + 10, helicopters[0].pos.y, helicopters[0].pos.z * Math.sin(zx) + 10];
             let up = [0, 1, 0];
             currentview = lookAt(eye, at, up);
         }
