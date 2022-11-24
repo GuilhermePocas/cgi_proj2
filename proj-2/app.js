@@ -109,8 +109,10 @@ const BODY_HEIGHT = 2;
 const BODY_WIDTH = 1.5;
 
 const HELICOPTER_MAX_HEIGHT = 60;
+const HELICOPTER_LANDING_HEIGHT = HELICOPTER_MAX_HEIGHT/6;
 const HELICOPTER_MIN_HEIGHT = FLOOR_HEIGHT+BODY_HEIGHT+LANDING_BEAM_RADIUS/2;
 const HELICOPTER_MAX_SPEED = 0.025;
+const HELICOPTER_LANDING_SPEED = HELICOPTER_MAX_SPEED/5;
 const HELICOPTER_MAX_ANGLE = 30;
 
 const BOX_SIZE = 2;
@@ -198,7 +200,8 @@ function setup(shaders)
 
     let program = buildProgramFromSources(gl, shaders["shader.vert"], shaders["shader.frag"]);
 
-    let mProjection = perspective(-VP_DISTANCE*aspect,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE,3*VP_DISTANCE);
+    //let mProjection = perspective(-VP_DISTANCE*aspect,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE,3*VP_DISTANCE);
+    let mProjection = perspective(90,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE,3*VP_DISTANCE);
 
     mode = gl.TRIANGLES; 
 
@@ -264,11 +267,21 @@ function setup(shaders)
                         helicopters[selected_helicopter].pos.y = HELICOPTER_MIN_HEIGHT;
                     handleHeliMovement(HELICOPTER_ACTIONS.DESCENT, helicopters[selected_helicopter]);
                 }
+                if(helicopters[selected_helicopter].pos.y < HELICOPTER_LANDING_HEIGHT)
+                    helicopters[selected_helicopter].velocity.x = helicopters[selected_helicopter].velocity.x*
+                    (helicopters[selected_helicopter].pos.y/HELICOPTER_LANDING_HEIGHT);
+                
                 break;
             case 'ArrowRight':
                 if(canMove(helicopters[selected_helicopter])){
-                    if(helicopters[selected_helicopter].velocity.x < HELICOPTER_MAX_SPEED)
-                    helicopters[selected_helicopter].velocity.x += 0.001;
+                    if(helicopters[selected_helicopter].pos.y < HELICOPTER_LANDING_HEIGHT){
+                        if(helicopters[selected_helicopter].velocity.x < HELICOPTER_LANDING_SPEED)
+                            helicopters[selected_helicopter].velocity.x += 0.001;
+                    }
+                    else {
+                        if(helicopters[selected_helicopter].velocity.x < HELICOPTER_MAX_SPEED)
+                            helicopters[selected_helicopter].velocity.x += 0.001;
+                    }
                     handleHeliMovement(HELICOPTER_ACTIONS.FORWARD, helicopters[selected_helicopter]);
                 }
                 break;
@@ -824,6 +837,79 @@ function setup(shaders)
         popMatrix();
     }
 
+    const REED_TOP_LENGTH = 1.5;
+    const REED_TOP_RADIUS = 0.3;
+    const REED_TOP_COLOUR = vec3(79/255, 49/255, 1/255);
+
+    function reedTop() {
+        pushMatrix();
+            updateColor(REED_TOP_COLOUR);
+            multScale([REED_TOP_RADIUS, REED_TOP_LENGTH, REED_TOP_RADIUS]);
+            uploadModelView();
+            CYLINDER.draw(gl, program, mode);
+        popMatrix();
+    }
+
+    const REED_LENGTH = 4;
+    const REED_RADIUS = 0.2;
+    const REED_COLOUR = vec3(144/255, 255/255, 18/255);
+    const REED_LEAF_LENGTH = 1;
+    const REED_LEAF_HEIGHT = 0.1;
+    const REED_LEAF_WIDTH = 0.5;
+
+
+    function reedLeaf() {
+        pushMatrix();
+            updateColor(REED_COLOUR);
+            multScale([REED_LEAF_LENGTH, REED_LEAF_HEIGHT, REED_LEAF_WIDTH]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+    }
+
+    function reed() {
+        pushMatrix();
+            updateColor(REED_COLOUR);
+            multScale([REED_RADIUS, REED_LENGTH, REED_RADIUS]);
+            uploadModelView();
+            CYLINDER.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([0, REED_LENGTH/2, 0]);
+            reedTop();
+        popMatrix();
+        pushMatrix();
+        multTranslation([REED_LEAF_LENGTH/2, 0, 0]);
+            reedLeaf();
+        popMatrix();
+
+    }
+
+    function reedGroup() {
+        pushMatrix();
+            multTranslation([1, 0, 0]);
+            multRotationZ(-10);
+            multScale([1.1, 1.1, 1.1]);
+            reed();
+        popMatrix();
+        pushMatrix();
+            multTranslation([-1, 0, -2]);
+            multRotationX(-20);
+            reed();
+            pushMatrix();
+                multTranslation([-REED_LEAF_LENGTH/2, -REED_LENGTH*1/4, 0]);
+                multScale([1.3, 1.3, 1.3]);
+                reedLeaf();
+            popMatrix();
+        popMatrix();
+        pushMatrix();
+            multTranslation([-1, 0, 0]);
+            multRotationY(45);
+            multRotationZ(20);
+            reed();
+        popMatrix();
+    }
+
     function lake() {
         pushMatrix();
             updateColor(LAKE_COLOUR);
@@ -841,11 +927,21 @@ function setup(shaders)
                 multTranslation([LAKE_DIAMETER*(-1/6) + Math.sin(2.0 + time*2), 0, LAKE_DIAMETER*(-1/3)]);
                 lily();
             popMatrix();
+            pushMatrix();
+                multTranslation([-LAKE_DIAMETER/4, FLOOR_HEIGHT/2, LAKE_DIAMETER/3]);
+                reedGroup();
+            popMatrix();
+            pushMatrix();
+                multTranslation([-LAKE_DIAMETER/3, FLOOR_HEIGHT/2, -LAKE_DIAMETER/3]);
+                reedGroup();
+            popMatrix();
+        popMatrix();
         popMatrix();
                 multTranslation([LAKE_DIAMETER*(-1/6), -FLOOR_HEIGHT/2, LAKE_DIAMETER*(1/8 )]);
                 multRotationY(-45);
                 jumpingFish();
-        pushMatrix
+        pushMatrix();
+
     }
 
     function cloud(c) {
@@ -926,7 +1022,7 @@ function setup(shaders)
         } 
         if(isPov){
             //viewProjectionMatrix = mult(projectionMatrix);
-            let mModelView = modelView();
+            /*let mModelView = modelView();
             let mView = lookAt([helicopters[0].pos.x, -helicopters[0].pos.y, helicopters[0].pos.z],
                 [0, 1, 0], [0, 1, 0]);
             let mModel = mult(inverse(mView), mModelView);
@@ -934,9 +1030,13 @@ function setup(shaders)
             let mEye = mult(mModel, vec4(0, 0, 0, 1));
             let mAt = mult(mModel, vec4(1, 0, 0, 1));
             viewProjectionMatrix = lookAt([mEye[0], mEye[1], mEye[2]], [mAt[0], mAt[1], mAt[2]], [0, 1, 0]);
-            console.log(helicopters[0].pos.y);
-            /*currentview = lookAt([helicopters[0].pos.x, helicopters[0].pos.y, helicopters[0].pos.z],
-                [helicopters[0].pos.x, helicopters[0].pos.y, helicopters[0].pos.z], [0, 1, 0]);*/
+            console.log(helicopters[0].pos.y);*/
+            let zx = Math.atan2(-helicopters[0].pos.z, helicopters[0].pos.x);
+            console.log(zx);
+            let eye = [helicopters[0].pos.x, helicopters[0].pos.y, helicopters[0].pos.z];
+            let at = [helicopters[0].pos.x * Math.cos(zx), helicopters[0].pos.y, helicopters[0].pos.z * Math.sin(zx)];
+            let up = [0, 1, 0];
+            currentview = lookAt(eye, at, up);
         }
         else
             viewProjectionMatrix = mat4();
