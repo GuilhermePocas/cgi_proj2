@@ -72,6 +72,15 @@ const CLOUD_COLOUR = vec3(1, 1, 1);
 const CLOUD_MOVE_SPEED = 0.05;
 
 
+const REED_TOP_LENGTH = 1.5;
+const REED_TOP_RADIUS = 0.3;
+const REED_TOP_COLOUR = vec3(79/255, 49/255, 1/255);
+const REED_LENGTH = 4;
+const REED_RADIUS = 0.2;
+const REED_COLOUR = vec3(144/255, 255/255, 18/255);
+const REED_LEAF_LENGTH = 1;
+const REED_LEAF_HEIGHT = 0.1;
+const REED_LEAF_WIDTH = 0.5;
 
 //helicopter constants
 
@@ -841,10 +850,6 @@ function setup(shaders)
         popMatrix();
     }
 
-    const REED_TOP_LENGTH = 1.5;
-    const REED_TOP_RADIUS = 0.3;
-    const REED_TOP_COLOUR = vec3(79/255, 49/255, 1/255);
-
     function reedTop() {
         pushMatrix();
             updateColor(REED_TOP_COLOUR);
@@ -853,13 +858,6 @@ function setup(shaders)
             CYLINDER.draw(gl, program, mode);
         popMatrix();
     }
-
-    const REED_LENGTH = 4;
-    const REED_RADIUS = 0.2;
-    const REED_COLOUR = vec3(144/255, 255/255, 18/255);
-    const REED_LEAF_LENGTH = 1;
-    const REED_LEAF_HEIGHT = 0.1;
-    const REED_LEAF_WIDTH = 0.5;
 
 
     function reedLeaf() {
@@ -873,43 +871,42 @@ function setup(shaders)
 
     function reed() {
         pushMatrix();
-            updateColor(REED_COLOUR);
-            multScale([REED_RADIUS, REED_LENGTH, REED_RADIUS]);
-            uploadModelView();
-            CYLINDER.draw(gl, program, mode);
-        popMatrix();
-        pushMatrix();
             multTranslation([0, REED_LENGTH/2, 0]);
-            reedTop();
+            pushMatrix();
+                updateColor(REED_COLOUR);
+                multScale([REED_RADIUS, REED_LENGTH, REED_RADIUS]);
+                uploadModelView();
+                CYLINDER.draw(gl, program, mode);
+            popMatrix();
+            pushMatrix();
+                multTranslation([0, REED_LENGTH/2, 0]);
+                reedTop();
+            popMatrix();
+            pushMatrix();
+                multRotationZ(45);
+                multTranslation([REED_LEAF_LENGTH/2, 0, 0]);
+                reedLeaf();
+            popMatrix();
         popMatrix();
-        pushMatrix();
-        multTranslation([REED_LEAF_LENGTH/2, 0, 0]);
-            reedLeaf();
-        popMatrix();
-
     }
 
     function reedGroup() {
         pushMatrix();
             multTranslation([1, 0, 0]);
-            multRotationZ(-10);
+            multRotationX(-5 * Math.sin(time*2));
             multScale([1.1, 1.1, 1.1]);
             reed();
         popMatrix();
         pushMatrix();
             multTranslation([-1, 0, -2]);
-            multRotationX(-20);
+            multRotationZ(5 * Math.cos(time*2));
+            multRotationY(180);
             reed();
-            pushMatrix();
-                multTranslation([-REED_LEAF_LENGTH/2, -REED_LENGTH*1/4, 0]);
-                multScale([1.3, 1.3, 1.3]);
-                reedLeaf();
-            popMatrix();
         popMatrix();
         pushMatrix();
             multTranslation([-1, 0, 0]);
-            multRotationY(45);
-            multRotationZ(20);
+            multRotationX(5 * Math.sin(1 +time*2));
+            multRotationY(270);
             reed();
         popMatrix();
     }
@@ -937,11 +934,12 @@ function setup(shaders)
             popMatrix();
             pushMatrix();
                 multTranslation([-LAKE_DIAMETER/3, FLOOR_HEIGHT/2, -LAKE_DIAMETER/3]);
+                multRotationY(90);
                 reedGroup();
             popMatrix();
         popMatrix();
         popMatrix();
-                multTranslation([LAKE_DIAMETER*(-1/6), -FLOOR_HEIGHT/2, LAKE_DIAMETER*(1/8 )]);
+                multTranslation([LAKE_DIAMETER*(-1/6), 0, LAKE_DIAMETER*(1/8 )]);
                 multRotationY(-45);
                 jumpingFish();
         pushMatrix();
