@@ -180,6 +180,7 @@ let trees = [];
 let clouds = [];
 let boxes = [];
 let selected_helicopter = 0;
+let isLeftKeyPressed = false;
 
 var viewProjectionMatrix = mat4();
 
@@ -295,6 +296,7 @@ function setup(shaders)
                 }
                 break;
             case 'ArrowLeft':
+                isLeftKeyPressed = true;
                 if(canMove(helicopters[selected_helicopter])){
                     if(helicopters[selected_helicopter].pos.y < HELICOPTER_LANDING_HEIGHT){
                         if(helicopters[selected_helicopter].velocity.x < HELICOPTER_LANDING_SPEED)
@@ -302,7 +304,7 @@ function setup(shaders)
                     }
                     else {
                         if(helicopters[selected_helicopter].velocity.x < HELICOPTER_MAX_SPEED)
-                            helicopters[selected_helicopter].velocity.x += 0.0001;
+                            helicopters[selected_helicopter].velocity.x += 0.0002;
                     }
                     handleHeliMovement(HELICOPTER_ACTIONS.FORWARD, helicopters[selected_helicopter]);
                 }
@@ -323,6 +325,11 @@ function setup(shaders)
                 generateBox();
                 break;
         }
+    }
+
+    document.onkeyup = function(event){
+        if(event.key==="ArrowLeft")
+            isLeftKeyPressed = false;
     }
 
     gl.clearColor(17/255, 203/255, 240/255, 1.0);
@@ -348,25 +355,6 @@ function setup(shaders)
 
         gl.viewport(0,0,canvas.width, canvas.height);
         mProjection = ortho(-VP_DISTANCE*aspect,VP_DISTANCE*aspect, -VP_DISTANCE, VP_DISTANCE,-3*VP_DISTANCE,3*VP_DISTANCE);
-    }
-
-    function generateBuildings(count){
-        for(let i = 0; i < count; i++){
-            
-            var x;
-            var z;
-            do {
-                x = randomNumBetween(-FLOOR_SIZE/2+BUILDING_SIZE/2, FLOOR_SIZE/2-BUILDING_SIZE/2);
-                z = randomNumBetween(-FLOOR_SIZE/2+BUILDING_SIZE/2, FLOOR_SIZE/2-BUILDING_SIZE/2);
-            } while(isInPath(x,z))
-
-            let build = new BuildingObject(
-                {x: x, z: z},
-                {height: randomNumBetween(BUILDING_MIN_HEIGHT, HELICOPTER_MAX_HEIGHT)},
-                {body: vec3(randomNumBetween(0, 1), randomNumBetween(0, 1), randomNumBetween(0, 1))}
-            )
-            buildings.push(build);
-        }
     }
 
     function generateTrees(count) {
@@ -437,11 +425,6 @@ function setup(shaders)
     function canMove(heli){
         return heli.isInAir;
     }
-/*
-    function getMinPossibleHeight(pos){
-        return FLOOR_HEIGHT+BODY_HEIGHT;
-    }
-*/
 
     function blade(heli) {
         updateColor(heli.colours.blade);
@@ -1011,7 +994,7 @@ function setup(shaders)
             mProjection = perspective(world.fov,aspect, 1, 4*world.fov);
             let zx = helicopters[0].rotations.y;
             let eye = [helicopters[0].pos.x, helicopters[0].pos.y+10, helicopters[0].pos.z];
-            let at = [helicopters[0].pos.x+10*Math.sin(degToRad(zx+270)), helicopters[0].pos.y, helicopters[0].pos.z+10*Math.cos(degToRad(zx+270))];
+            let at = [helicopters[0].pos.x+10*Math.sin(degToRad(zx+270)), helicopters[0].pos.y+5, helicopters[0].pos.z+10*Math.cos(degToRad(zx+270))];
             let up = [0, 1, 0];
             currentview = lookAt(eye, at, up);
         }
@@ -1027,8 +1010,8 @@ function setup(shaders)
         for(const heli of helicopters){
             pushMatrix();
                 if(animation) {
-                    if(heli.velocity.x > 0)
-                        heli.velocity.x -= 0.00005;
+                    if(heli.velocity.x > 0/* && !isLeftKeyPressed*/)
+                        heli.velocity.x -= 0.00001;
                     updateHeliPos(heli)
                 }
                 helicopter(heli);
@@ -1066,7 +1049,6 @@ function setup(shaders)
     
             heli.rotations.z = (HELICOPTER_MAX_ANGLE * heli.velocity.x)/HELICOPTER_MAX_SPEED;
             heli.rotations.y = zx;
-            heli.rotations.x = (10 * heli.velocity.x)/HELICOPTER_MAX_SPEED;  
     
             if(heli.rotors_speeds.main < MAIN_ROTOR_MAX_SPEED)
             heli.rotors_speeds.main += heli.velocity.x;
@@ -1134,13 +1116,12 @@ function setup(shaders)
 
                 if(heli.pos.y <= HELICOPTER_MIN_HEIGHT)
                     heli.isInAir = false;
-                
+
                 break;
 
             case HELICOPTER_ACTIONS.FORWARD:
                 heli.rotations.z = (HELICOPTER_MAX_ANGLE * heli.velocity.x)/HELICOPTER_MAX_SPEED;
                 heli.rotations.y = zx;
-                heli.rotations.x = (10 * heli.velocity.x)/HELICOPTER_MAX_SPEED;
 
                 if(heli.rotors_speeds.main < MAIN_ROTOR_MAX_SPEED)
                     heli.rotors_speeds.main += heli.velocity.x;
@@ -1155,6 +1136,7 @@ function setup(shaders)
                 heli.pos.x = Math.cos(heli.velocity.movRate) * TRAJECTORY_RADIUS;
                 heli.pos.z = Math.sin(-heli.velocity.movRate) * TRAJECTORY_RADIUS;
                 break;
+                
             case HELICOPTER_ACTIONS.BACKWARD:
                 heli.rotations.z = (HELICOPTER_MAX_ANGLE * heli.velocity.x)/HELICOPTER_MAX_SPEED;
                 heli.rotations.y = zx;
@@ -1162,7 +1144,7 @@ function setup(shaders)
                 if(heli.rotors_speeds.main < MAIN_ROTOR_MAX_SPEED)
                     heli.rotors_speeds.main -= heli.velocity.x;
                 heli.rotors_speeds.mainRate += heli.rotors_speeds.main;
-heli.rotations.x = (10 * heli.velocity.x)/HELICOPTER_MAX_SPEED;
+                heli.rotations.x = (10 * heli.velocity.x)/HELICOPTER_MAX_SPEED;
 
                 if(heli.rotors_speeds.tail < TAIL_ROTOR_MAX_SPEED)
                     heli.rotors_speeds.tail -= heli.velocity.x;
@@ -1247,16 +1229,6 @@ class BoxObject{
         this.rotations = {y: 0};
         this.life = 0;
         this.startTime = time;
-    }
-}
-
-class BuildingObject {
-
-    constructor(pos, dimensions, colours, scale=1){
-        this.pos = pos
-        this.dimensions = dimensions
-        this.colours = colours
-        this.scale = scale
     }
 }
 
