@@ -252,7 +252,7 @@ function setup(shaders)
                 handleHeliMovement(HELICOPTER_ACTIONS.CLIMB, heli);
                 break;
             case 'ArrowDown':
-                andleHeliMovement(HELICOPTER_ACTIONS.DESCENT, heli);
+                handleHeliMovement(HELICOPTER_ACTIONS.DESCENT, heli);
                 break;
             case 'ArrowRight':
                 break;
