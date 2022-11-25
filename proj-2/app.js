@@ -92,8 +92,8 @@ const BLADE_COLOR = vec3(250/255, 175/255, 25/255);
 const CYLINDER_COLOR = vec3(227/255, 182/255, 20/255);
 const BEAM_COLOR = vec3(133/255, 133/255, 133/255);
 
-const BLADE_LENGTH = 50;
-const BLADE_WIDTH = 5;
+const BLADE_LENGTH = 4.5;
+const BLADE_WIDTH = 0.5;
 
 const ROTOR_RADIUS = 0.08;
 const ROTOR_HEIGHT = 0.5;
@@ -120,7 +120,7 @@ const BODY_WIDTH = 1.5;
 const HELICOPTER_MAX_HEIGHT = 60;
 const HELICOPTER_LANDING_HEIGHT = HELICOPTER_MAX_HEIGHT/6;
 const HELICOPTER_MIN_HEIGHT = FLOOR_HEIGHT+BODY_HEIGHT+LANDING_BEAM_RADIUS/2;
-const HELICOPTER_MAX_SPEED = 0.025;
+const HELICOPTER_MAX_SPEED = 0.01;
 const HELICOPTER_LANDING_SPEED = HELICOPTER_MAX_SPEED/5;
 const HELICOPTER_MAX_ANGLE = 30;
 
@@ -287,24 +287,24 @@ function setup(shaders)
                 break;
             case 'ArrowRight':
                 if(canMove(helicopters[selected_helicopter])){
-                    if(helicopters[selected_helicopter].pos.y < HELICOPTER_LANDING_HEIGHT){
-                        if(helicopters[selected_helicopter].velocity.x < HELICOPTER_LANDING_SPEED)
-                            helicopters[selected_helicopter].velocity.x += 0.001;
-                    }
-                    else {
-                        if(helicopters[selected_helicopter].velocity.x < HELICOPTER_MAX_SPEED)
-                            helicopters[selected_helicopter].velocity.x += 0.001;
-                    }
-                    handleHeliMovement(HELICOPTER_ACTIONS.FORWARD, helicopters[selected_helicopter]);
+                    if(helicopters[selected_helicopter].velocity.x <= 0)
+                        helicopters[selected_helicopter].velocity.x = 0;
+                    else
+                        helicopters[selected_helicopter].velocity.x -= 0.0001;
+                    handleHeliMovement(HELICOPTER_ACTIONS.BACKWARD, helicopters[selected_helicopter]);
                 }
                 break;
             case 'ArrowLeft':
                 if(canMove(helicopters[selected_helicopter])){
-                    if(helicopters[selected_helicopter].velocity.x <= 0)
-                        helicopters[selected_helicopter].velocity.x = 0;
-                    else
-                        helicopters[selected_helicopter].velocity.x -= 0.001;
-                    handleHeliMovement(HELICOPTER_ACTIONS.BACKWARD, helicopters[selected_helicopter]);
+                    if(helicopters[selected_helicopter].pos.y < HELICOPTER_LANDING_HEIGHT){
+                        if(helicopters[selected_helicopter].velocity.x < HELICOPTER_LANDING_SPEED)
+                            helicopters[selected_helicopter].velocity.x += 0.0005;
+                    }
+                    else {
+                        if(helicopters[selected_helicopter].velocity.x < HELICOPTER_MAX_SPEED)
+                            helicopters[selected_helicopter].velocity.x += 0.0001;
+                    }
+                    handleHeliMovement(HELICOPTER_ACTIONS.FORWARD, helicopters[selected_helicopter]);
                 }
                 break;
             case 'r':
@@ -429,10 +429,6 @@ function setup(shaders)
         boxes.push(box);
     }
 
-    function dropBox() {
-
-    }
-
     function uploadModelView()
     {
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(mult(viewProjectionMatrix, modelView())));
@@ -455,50 +451,50 @@ function setup(shaders)
     }
 
     function rotor(heli) {
+        multRotationY(heli.rotors_speeds.mainRate);
         pushMatrix();
             updateColor(heli.colours.cylinder);
             multScale([ROTOR_RADIUS, ROTOR_HEIGHT, ROTOR_RADIUS]);
-            multRotationY(heli.rotors_speeds.mainRate);
             uploadModelView();
             CYLINDER.draw(gl, program, mode);
-            pushMatrix();
-                multRotationY(360/3);
-                multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                blade(heli);
-            popMatrix();
-            pushMatrix();
-                multRotationY(360*2/3);
-                multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                blade(heli);
-            popMatrix();
-            pushMatrix();
-                multRotationY(360*3/3);
-                multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                blade(heli);
-            popMatrix();
+        popMatrix()
+        pushMatrix();
+            multRotationY(360/3);
+            multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
+            blade(heli);
+        popMatrix();
+        pushMatrix();
+            multRotationY(360*2/3);
+            multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
+            blade(heli);
+        popMatrix();
+        pushMatrix();
+            multRotationY(360*3/3);
+            multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
+            blade(heli);
         popMatrix();
     }
 
     function tailRotor(heli) {
+        multRotationY(heli.rotors_speeds.tailRate);
         pushMatrix();
             updateColor(heli.colours.cylinder);
             multScale([ROTOR_RADIUS, ROTOR_HEIGHT/2, ROTOR_RADIUS]);
-            multRotationY(heli.rotors_speeds.tailRate);
             uploadModelView();
             CYLINDER.draw(gl, program, mode);
+        popMatrix()
+        pushMatrix();
             pushMatrix();
-                pushMatrix();
-                    multScale([1/6, 1, 1/3]);
-                    multRotationY(360);
-                    multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                    blade(heli);
-                popMatrix();
-                pushMatrix();
-                    multScale([1/6, 1, 1/3]);
-                    multRotationY(360/2);
-                    multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                    blade(heli);
-                popMatrix();
+                multScale([1/6, 1, 1/3]);
+                multRotationY(360);
+                multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/8, 0]);
+                blade(heli);
+            popMatrix();
+            pushMatrix();
+                multScale([1/6, 1, 1/3]);
+                multRotationY(360/2);
+                multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/8, 0]);
+                blade(heli);
             popMatrix();
         popMatrix();
     }
@@ -620,16 +616,6 @@ function setup(shaders)
             multScale([heli.scale, heli.scale, heli.scale]);
             uploadModelView();
             helicopterBody(heli);
-        popMatrix();
-    }
-
-    function building(build){
-        pushMatrix();
-            updateColor(build.colours.body);
-            multTranslation([build.pos.x, build.dimensions.height/2, build.pos.z]);
-            multScale([BUILDING_SIZE, build.dimensions.height, BUILDING_SIZE]);
-            uploadModelView();
-            CUBE.draw(gl, program, mode);
         popMatrix();
     }
 
@@ -1002,8 +988,6 @@ function setup(shaders)
         popMatrix();
     }
 
-
-
     function render()
     {
         if(animation) time += speed;
@@ -1025,7 +1009,7 @@ function setup(shaders)
         if(isPov){
             mProjection = perspective(world.fov,aspect, 1, 4*world.fov);
             let zx = helicopters[0].rotations.y;
-            let eye = [helicopters[0].pos.x, helicopters[0].pos.y-5, helicopters[0].pos.z];
+            let eye = [helicopters[0].pos.x, helicopters[0].pos.y+10, helicopters[0].pos.z];
             let at = [helicopters[0].pos.x+10*Math.sin(degToRad(zx+270)), helicopters[0].pos.y, helicopters[0].pos.z+10*Math.cos(degToRad(zx+270))];
             let up = [0, 1, 0];
             currentview = lookAt(eye, at, up);
@@ -1171,11 +1155,11 @@ function setup(shaders)
             case HELICOPTER_ACTIONS.BACKWARD:
                 heli.rotations.z = (HELICOPTER_MAX_ANGLE * heli.velocity.x)/HELICOPTER_MAX_SPEED;
                 heli.rotations.y = zx;
-                heli.rotations.x = (10 * heli.velocity.x)/HELICOPTER_MAX_SPEED;
-
+                
                 if(heli.rotors_speeds.main < MAIN_ROTOR_MAX_SPEED)
                     heli.rotors_speeds.main -= heli.velocity.x;
                 heli.rotors_speeds.mainRate += heli.rotors_speeds.main;
+heli.rotations.x = (10 * heli.velocity.x)/HELICOPTER_MAX_SPEED;
 
                 if(heli.rotors_speeds.tail < TAIL_ROTOR_MAX_SPEED)
                     heli.rotors_speeds.tail -= heli.velocity.x;
@@ -1203,7 +1187,7 @@ function setup(shaders)
         if(box.life < 5) {
             box.life = time - box.startTime
             if(box.pos.y > FLOOR_HEIGHT/2 + box.dimensions.height/2) {
-                box.velocity.y =+ 0.01;
+                box.velocity.y =+ 0.001;
                 box.velocity.yMovRate += box.velocity.y;
                 box.pos.y -= box.velocity.yMovRate;
 
