@@ -19,8 +19,8 @@ let mode;               // Drawing mode (gl.LINES or gl.TRIANGLES)
 let animation = true;   // Animation is running
 
 
-const HELICOPTER_LENGHT = 10;
 const TRAJECTORY_RADIUS = 40;
+const GRAVITY = 0.8;
 
 //scenery constants
 
@@ -1026,8 +1026,8 @@ function setup(shaders)
         if(isPov){
             mProjection = perspective(world.fov,aspect, 1, 4*world.fov);
             let zx = helicopters[0].rotations.y;
-            let eye = [helicopters[0].pos.x, helicopters[0].pos.y-5, helicopters[0].pos.z];
-            let at = [helicopters[0].pos.x+10*Math.sin(degToRad(zx+270)), helicopters[0].pos.y, helicopters[0].pos.z+10*Math.cos(degToRad(zx+270))];
+            let eye = [helicopters[0].pos.x, helicopters[0].pos.y, helicopters[0].pos.z];
+            let at = [helicopters[0].pos.x+10*Math.sin(degToRad(zx+270)), helicopters[0].pos.y + Math.sin(degToRad(zx+270)), helicopters[0].pos.z+10*Math.cos(degToRad(zx+270))];
             let up = [0, 1, 0];
             currentview = lookAt(eye, at, up);
         }
@@ -1042,8 +1042,11 @@ function setup(shaders)
         popMatrix();
         for(const heli of helicopters){
             pushMatrix();
-                if(animation)
+                if(animation) {
+                    if(heli.velocity.x > 0)
+                        heli.velocity.x -= 0.00005;
                     updateHeliPos(heli)
+                }
                 helicopter(heli);
             popMatrix();
         }
@@ -1167,7 +1170,6 @@ function setup(shaders)
                 heli.velocity.movRate += heli.velocity.x;
                 heli.pos.x = Math.cos(heli.velocity.movRate) * TRAJECTORY_RADIUS;
                 heli.pos.z = Math.sin(-heli.velocity.movRate) * TRAJECTORY_RADIUS;
-
                 break;
             case HELICOPTER_ACTIONS.BACKWARD:
                 heli.rotations.z = (HELICOPTER_MAX_ANGLE * heli.velocity.x)/HELICOPTER_MAX_SPEED;
@@ -1204,7 +1206,7 @@ function setup(shaders)
         if(box.life < 5) {
             box.life = time - box.startTime
             if(box.pos.y > FLOOR_HEIGHT/2 + box.dimensions.height/2) {
-                box.velocity.y =+ 0.01;
+                box.velocity.y = box.velocity.y*GRAVITY;
                 box.velocity.yMovRate += box.velocity.y;
                 box.pos.y -= box.velocity.yMovRate;
 
