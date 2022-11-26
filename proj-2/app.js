@@ -54,7 +54,7 @@ const FISH_FIN_HEIGHT = 0.5;
 const EYE_RADIUS = 0.4;
 const EYE_COLOUR = vec3(0, 0, 0);
 const FISH_JUMP_RADIUS = 5;
-const FISH_JUMP_SPEED = 250;
+const FISH_JUMP_SPEED = 400;
 
 const FROG_LENGTH = 3;
 const FROG_RADIUS = 1.5;
