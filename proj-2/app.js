@@ -512,23 +512,21 @@ function setup(shaders)
 
     function helicopterBody(heli) {
         pushMatrix();
-            pushMatrix();
-                updateColor(heli.colours.body);
-                multScale([BODY_LENGTH, BODY_HEIGHT, BODY_WIDTH]);
-                uploadModelView();
-                SPHERE.draw(gl, program, mode);
-            popMatrix();
-            pushMatrix();
-                multTranslation([TAIL_LENGTH*(3/4), BODY_HEIGHT/8, 0]);
-                tail(heli);
-            popMatrix();
-            pushMatrix();
-                multTranslation([BODY_LENGTH*(1/14), BODY_HEIGHT/2, 0]);
-                rotor(heli);
-            popMatrix();
-            pushMatrix();
-                landingGear(heli);
-            popMatrix();
+            updateColor(heli.colours.body);
+            multScale([BODY_LENGTH, BODY_HEIGHT, BODY_WIDTH]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([TAIL_LENGTH*(3/4), BODY_HEIGHT/8, 0]);
+            tail(heli);
+        popMatrix();
+        pushMatrix();
+            multTranslation([BODY_LENGTH*(1/14), BODY_HEIGHT/2, 0]);
+            rotor(heli);
+        popMatrix();
+        pushMatrix();
+            landingGear(heli);
         popMatrix();
     }
 
