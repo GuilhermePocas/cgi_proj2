@@ -441,23 +441,21 @@ function setup(shaders)
 
     function tail(heli) {
         pushMatrix();
-            pushMatrix();
-                updateColor(heli.colours.body);
-                multScale([TAIL_LENGTH, TAIL_HEIGHT, TAIL_WIDTH]);
-                uploadModelView();
-                SPHERE.draw(gl, program, mode);
-            popMatrix();
-            pushMatrix();
-                multTranslation([TAIL_LENGTH/2, TAIL_HEIGHT*(2/3), 0]);
-                multRotationZ(65);
-                tailTip(heli);
-            popMatrix();
+            updateColor(heli.colours.body);
+            multScale([TAIL_LENGTH, TAIL_HEIGHT, TAIL_WIDTH]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([TAIL_LENGTH/2, TAIL_HEIGHT*(2/3), 0]);
+            multRotationZ(65);
+            tailTip(heli);
         popMatrix();
     }
 
     function supportBeam(heli) {
-        updateColor(heli.colours.beam);
         pushMatrix();
+            updateColor(heli.colours.beam);
             multScale([SUPPORT_BEAM_LENGTH, SUPPORT_BEAM_HEIGHT, SUPPORT_BEAM_WIDTH]);
             multRotationZ(90);
             uploadModelView();
@@ -466,8 +464,8 @@ function setup(shaders)
     }
 
     function landingBeam(heli) {
-        updateColor(heli.colours.cylinder);
         pushMatrix();
+            updateColor(heli.colours.cylinder);
             multScale([LANDING_BEAM_LENGTH, LANDING_BEAM_RADIUS, LANDING_BEAM_RADIUS]);
             multRotationZ(90);
             uploadModelView();
@@ -476,36 +474,32 @@ function setup(shaders)
     }
 
     function landingStructure(heli) {
-        pushMatrix()
-            pushMatrix();
-                multTranslation([-LANDING_BEAM_LENGTH/5, SUPPORT_BEAM_LENGTH*(3/8), -SUPPORT_BEAM_WIDTH]);
-                multRotationZ(55);
-                multRotationY(20);
-                supportBeam(heli);
-            popMatrix();
-            pushMatrix();
-                multTranslation([LANDING_BEAM_LENGTH/5, SUPPORT_BEAM_LENGTH*(3/8), -SUPPORT_BEAM_WIDTH]);
-                multRotationZ(-55);
-                multRotationY(-20);
-                supportBeam(heli);
-            popMatrix();
-            pushMatrix();
-                landingBeam(heli);
-            popMatrix();
+        pushMatrix();
+            multTranslation([-LANDING_BEAM_LENGTH/5, SUPPORT_BEAM_LENGTH*(3/8), -SUPPORT_BEAM_WIDTH]);
+            multRotationZ(55);
+            multRotationY(20);
+            supportBeam(heli);
+        popMatrix();
+        pushMatrix();
+            multTranslation([LANDING_BEAM_LENGTH/5, SUPPORT_BEAM_LENGTH*(3/8), -SUPPORT_BEAM_WIDTH]);
+            multRotationZ(-55);
+            multRotationY(-20);
+            supportBeam(heli);
+        popMatrix();
+        pushMatrix();
+            landingBeam(heli);
         popMatrix();
     }
 
     function landingGear(heli) {
         pushMatrix();
-            pushMatrix();
-                multTranslation([0, -BODY_HEIGHT*(5/7), BODY_WIDTH/2]);
-                landingStructure(heli);
-            popMatrix();
-            pushMatrix();
-                multTranslation([0, -BODY_HEIGHT*(5/7), -BODY_WIDTH/2]);
-                multScale([-1, 1, -1]);
-                landingStructure(heli);
-            popMatrix();
+            multTranslation([0, -BODY_HEIGHT*(5/7), BODY_WIDTH/2]);
+            landingStructure(heli);
+        popMatrix();
+        pushMatrix();
+            multTranslation([0, -BODY_HEIGHT*(5/7), -BODY_WIDTH/2]);
+            multScale([-1, 1, -1]);
+            landingStructure(heli);
         popMatrix();
     }
 
