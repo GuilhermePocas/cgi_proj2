@@ -20,7 +20,7 @@ let animation = true;   // Animation is running
 
 
 const TRAJECTORY_RADIUS = 40;
-const GRAVITY = 0.8;
+const GRAVITY = 0.99;
 
 //scenery constants
 
@@ -174,12 +174,10 @@ const DEFAULT_VELOCITY = {
 
 const DEFAULT_ACCELERATION = 0;
 
-let helicopters = [];
-let buildings = [];
+let helicopter;
 let trees = [];
 let clouds = [];
 let boxes = [];
-let selected_helicopter = 0;
 let isLeftKeyPressed = false;
 
 var viewProjectionMatrix = mat4();
@@ -266,47 +264,47 @@ function setup(shaders)
                 mProjection = perspective(world.fov,aspect, 1, VP_DISTANCE*2, 4*world.fov);
                 break;
             case 'ArrowUp':
-                if(helicopters[selected_helicopter].pos.y < HELICOPTER_MAX_HEIGHT) {
-                    helicopters[selected_helicopter].pos.y += 0.2;
-                    if(helicopters[selected_helicopter].velocity.y < HELICOPTER_MAX_SPEED)
-                        helicopters[selected_helicopter].velocity.y += 0.02;
-                    handleHeliMovement(HELICOPTER_ACTIONS.CLIMB, helicopters[selected_helicopter]);
+                if(helicopter.pos.y < HELICOPTER_MAX_HEIGHT) {
+                    helicopter.pos.y += 0.2;
+                    if(helicopter.velocity.y < HELICOPTER_MAX_SPEED)
+                        helicopter.velocity.y += 0.02;
+                    handleHeliMovement(HELICOPTER_ACTIONS.CLIMB, helicopter);
                 }
                 break;
             case 'ArrowDown':
-                if(helicopters[selected_helicopter].pos.y >= HELICOPTER_MIN_HEIGHT) {
-                    if(HELICOPTER_MIN_HEIGHT <= helicopters[selected_helicopter].pos.y - 0.1)
-                        helicopters[selected_helicopter].pos.y -= 0.2;
+                if(helicopter.pos.y >= HELICOPTER_MIN_HEIGHT) {
+                    if(HELICOPTER_MIN_HEIGHT <= helicopter.pos.y - 0.1)
+                        helicopter.pos.y -= 0.2;
                     else 
-                        helicopters[selected_helicopter].pos.y = HELICOPTER_MIN_HEIGHT;
-                    handleHeliMovement(HELICOPTER_ACTIONS.DESCENT, helicopters[selected_helicopter]);
+                        helicopter.pos.y = HELICOPTER_MIN_HEIGHT;
+                    handleHeliMovement(HELICOPTER_ACTIONS.DESCENT, helicopter);
                 }
-                if(helicopters[selected_helicopter].pos.y < HELICOPTER_LANDING_HEIGHT)
-                    helicopters[selected_helicopter].velocity.x = helicopters[selected_helicopter].velocity.x*
-                    (helicopters[selected_helicopter].pos.y/HELICOPTER_LANDING_HEIGHT);
+                if(helicopter.pos.y < HELICOPTER_LANDING_HEIGHT)
+                    helicopter.velocity.x = helicopter.velocity.x*
+                    (helicopter.pos.y/HELICOPTER_LANDING_HEIGHT);
                 
                 break;
             case 'ArrowRight':
-                if(canMove(helicopters[selected_helicopter])){
-                    if(helicopters[selected_helicopter].velocity.x <= 0)
-                        helicopters[selected_helicopter].velocity.x = 0;
+                if(canMove(helicopter)){
+                    if(helicopter.velocity.x <= 0)
+                        helicopter.velocity.x = 0;
                     else
-                        helicopters[selected_helicopter].velocity.x -= 0.0001;
-                    handleHeliMovement(HELICOPTER_ACTIONS.BACKWARD, helicopters[selected_helicopter]);
+                        helicopter.velocity.x -= 0.0001;
+                    handleHeliMovement(HELICOPTER_ACTIONS.BACKWARD, helicopter);
                 }
                 break;
             case 'ArrowLeft':
                 isLeftKeyPressed = true;
-                if(canMove(helicopters[selected_helicopter])){
-                    if(helicopters[selected_helicopter].pos.y < HELICOPTER_LANDING_HEIGHT){
-                        if(helicopters[selected_helicopter].velocity.x < HELICOPTER_LANDING_SPEED)
-                            helicopters[selected_helicopter].velocity.x += 0.0005;
+                if(canMove(helicopter)){
+                    if(helicopter.pos.y < HELICOPTER_LANDING_HEIGHT){
+                        if(helicopter.velocity.x < HELICOPTER_LANDING_SPEED)
+                            helicopter.velocity.x += 0.0005;
                     }
                     else {
-                        if(helicopters[selected_helicopter].velocity.x < HELICOPTER_MAX_SPEED)
-                            helicopters[selected_helicopter].velocity.x += 0.0002;
+                        if(helicopter.velocity.x < HELICOPTER_MAX_SPEED)
+                            helicopter.velocity.x += 0.0002;
                     }
-                    handleHeliMovement(HELICOPTER_ACTIONS.FORWARD, helicopters[selected_helicopter]);
+                    handleHeliMovement(HELICOPTER_ACTIONS.FORWARD, helicopter);
                 }
                 break;
             case 'r':
@@ -339,8 +337,7 @@ function setup(shaders)
     PYRAMID.init(gl);
     gl.enable(gl.DEPTH_TEST);   // Enables Z-buffer depth test
 
-    helicopters.push(new HelicopterObject())
-    //generateBuildings(6);
+    helicopter = new HelicopterObject()
     generateTrees(NUM_TREES);
     generateClouds(NUM_CLOUDS);
     
@@ -407,13 +404,13 @@ function setup(shaders)
 
     function generateBox() {
         let box = new BoxObject()
-        box.pos.x = helicopters[selected_helicopter].pos.x;
-        box.pos.y = helicopters[selected_helicopter].pos.y;
-        box.pos.z = helicopters[selected_helicopter].pos.z;
-        box.rotations.y = helicopters[selected_helicopter].rotations.y;
-        box.velocity.xMovRate = helicopters[selected_helicopter].velocity.movRate;
-        box.velocity.x = helicopters[selected_helicopter].velocity.x;
-        box.velocity.y = helicopters[selected_helicopter].velocity.y;
+        box.pos.x = helicopter.pos.x;
+        box.pos.y = helicopter.pos.y;
+        box.pos.z = helicopter.pos.z;
+        box.rotations.y = helicopter.rotations.y;
+        box.velocity.xMovRate = helicopter.velocity.movRate;
+        box.velocity.x = helicopter.velocity.x;
+        box.velocity.y = helicopter.velocity.y;
         boxes.push(box);
     }
 
@@ -589,7 +586,7 @@ function setup(shaders)
         popMatrix();
     }
 
-    function helicopter(heli)
+    function helicopterDraw(heli)
     {
         pushMatrix();
             multTranslation([heli.pos.x, heli.pos.y, heli.pos.z]);
@@ -992,13 +989,14 @@ function setup(shaders)
         } 
         if(isPov){
             mProjection = perspective(world.fov,aspect, 1, 4*world.fov);
-            let zx = helicopters[0].rotations.y;
-            let eye = [helicopters[0].pos.x, helicopters[0].pos.y+10, helicopters[0].pos.z];
-            let at = [helicopters[0].pos.x+10*Math.sin(degToRad(zx+270)), helicopters[0].pos.y+5, helicopters[0].pos.z+10*Math.cos(degToRad(zx+270))];
-            let up = [0, 1, 0];
+            let zx = helicopter.rotations.y;
+            let eye = [helicopter.pos.x + 8*Math.sin(degToRad(zx+270)), helicopter.pos.y-1, helicopter.pos.z + 8*Math.cos(degToRad(zx+270))];
+            let at = [helicopter.pos.x+15*Math.sin(degToRad(zx+270)), helicopter.pos.y - 0.4*helicopter.rotations.z, helicopter.pos.z+15*Math.cos(degToRad(zx+270))];
+            let up = [0, helicopter.rotations.y, 0];
             currentview = lookAt(eye, at, up);
-        }
 
+        }
+        console.log(helicopter.rotations.z)
         uploadModelView();
 
         multScale([world.scale, world.scale, world.scale]);
@@ -1007,16 +1005,14 @@ function setup(shaders)
         pushMatrix();
             floor();
         popMatrix();
-        for(const heli of helicopters){
-            pushMatrix();
-                if(animation) {
-                    if(heli.velocity.x > 0/* && !isLeftKeyPressed*/)
-                        heli.velocity.x -= 0.00001;
-                    updateHeliPos(heli)
-                }
-                helicopter(heli);
-            popMatrix();
-        }
+        pushMatrix();
+            if(animation) {
+                if(helicopter.velocity.x > 0 && !isLeftKeyPressed)
+                helicopter.velocity.x -= 0.00001;
+                updateHeliPos(helicopter)
+            }
+            helicopterDraw(helicopter);
+        popMatrix();
         for(const box of boxes) {
             pushMatrix();
                 if(animation)
