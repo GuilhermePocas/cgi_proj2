@@ -20,7 +20,7 @@ let animation = true;   // Animation is running
 
 
 const TRAJECTORY_RADIUS = 40;
-const GRAVITY = 0.99;
+const GRAVITY = 0.0001;
 
 //scenery constants
 
@@ -532,7 +532,7 @@ function setup(shaders)
         popMatrix();
     }
 
-    function helicopterDraw(heli)
+    function helicopter(heli)
     {
         pushMatrix();
             multTranslation([heli.pos.x, heli.pos.y, heli.pos.z]);
@@ -936,15 +936,9 @@ function setup(shaders)
             let eye = [heli.pos.x-25*Math.sin(degToRad(zx-90)), heli.pos.y+10, heli.pos.z-25*Math.cos(degToRad(zx-90))];
             let at = [heli.pos.x+10*Math.sin(degToRad(zx-90)), heli.pos.y+5, heli.pos.z+10*Math.cos(degToRad(zx-90))];
             let up = [0, 1, 0];
-            /*mProjection = perspective(world.fov,aspect, 1, 4*world.fov);
-            let zx = helicopter.rotations.y;
-            let eye = [helicopter.pos.x + 8*Math.sin(degToRad(zx+270)), helicopter.pos.y-1, helicopter.pos.z + 8*Math.cos(degToRad(zx+270))];
-            let at = [helicopter.pos.x+15*Math.sin(degToRad(zx+270)), helicopter.pos.y - 0.4*helicopter.rotations.z, helicopter.pos.z+15*Math.cos(degToRad(zx+270))];
-            let up = [0, helicopter.rotations.y, 0];*/
             currentview = lookAt(eye, at, up);
 
         }
-        console.log(helicopter.rotations.z)
         uploadModelView();
 
         multScale([world.scale, world.scale, world.scale]);
