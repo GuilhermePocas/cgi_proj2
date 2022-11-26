@@ -89,6 +89,7 @@ const CYLINDER_COLOR = vec3(227/255, 182/255, 20/255);
 const BEAM_COLOR = vec3(133/255, 133/255, 133/255);
 
 const BLADE_LENGTH = 4.5;
+const BLADE_HEIGHT = 0.1;
 const BLADE_WIDTH = 0.5;
 
 const ROTOR_RADIUS = 0.08;
@@ -371,40 +372,36 @@ function setup(shaders)
 
     function blade(heli) {
         updateColor(heli.colours.blade);
-        multScale([BLADE_LENGTH, 0.1, BLADE_WIDTH]);
+        multScale([BLADE_LENGTH, BLADE_HEIGHT, BLADE_WIDTH]);
         uploadModelView();
         SPHERE.draw(gl, program, mode);
     }
 
     function rotor(heli) {
         pushMatrix();
-            multRotationY(heli.rotors_speeds.mainRate);
-            pushMatrix();
-                updateColor(heli.colours.cylinder);
-                multScale([ROTOR_RADIUS, ROTOR_HEIGHT, ROTOR_RADIUS]);
-                uploadModelView();
-                CYLINDER.draw(gl, program, mode);
-            popMatrix()
-            pushMatrix();
-                multRotationY(360/3);
-                multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                blade(heli);
-            popMatrix();
-            pushMatrix();
-                multRotationY(360*2/3);
-                multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                blade(heli);
-            popMatrix();
-            pushMatrix();
-                multRotationY(360*3/3);
-                multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
-                blade(heli);
-            popMatrix();
+            updateColor(heli.colours.cylinder);
+            multScale([ROTOR_RADIUS, ROTOR_HEIGHT, ROTOR_RADIUS]);
+            uploadModelView();
+            CYLINDER.draw(gl, program, mode);
+        popMatrix()
+        pushMatrix();
+            multRotationY(120);
+            multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
+            blade(heli);
+        popMatrix();
+        pushMatrix();
+            multRotationY(240);
+            multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
+            blade(heli);
+        popMatrix();
+        pushMatrix();
+            multRotationY(360);
+            multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/2, 0]);
+            blade(heli);
         popMatrix();
     }
 
     function tailRotor(heli) {
-        multRotationY(heli.rotors_speeds.tailRate);
         pushMatrix();
             updateColor(heli.colours.cylinder);
             multScale([ROTOR_RADIUS, ROTOR_HEIGHT/2, ROTOR_RADIUS]);
@@ -412,15 +409,14 @@ function setup(shaders)
             CYLINDER.draw(gl, program, mode);
         popMatrix()
         pushMatrix();
+            multScale([1/6, 1, 1/3]);
             pushMatrix();
-                multScale([1/6, 1, 1/3]);
                 multRotationY(360);
                 multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/8, 0]);
                 blade(heli);
             popMatrix();
             pushMatrix();
-                multScale([1/6, 1, 1/3]);
-                multRotationY(360/2);
+                multRotationY(180);
                 multTranslation([BLADE_LENGTH/2, ROTOR_HEIGHT/8, 0]);
                 blade(heli);
             popMatrix();
@@ -437,6 +433,7 @@ function setup(shaders)
         pushMatrix();
             multTranslation([0, 0, TAIL_TIP_WIDTH/2]);
             multRotationX(90);
+            multRotationY(heli.rotors_speeds.tailRate);
             tailRotor(heli);
         popMatrix();
     }
@@ -519,6 +516,7 @@ function setup(shaders)
         popMatrix();
         pushMatrix();
             multTranslation([BODY_LENGTH*(1/14), BODY_HEIGHT/2, 0]);
+            multRotationY(heli.rotors_speeds.mainRate);
             rotor(heli);
         popMatrix();
         pushMatrix();
