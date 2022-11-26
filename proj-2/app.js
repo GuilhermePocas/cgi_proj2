@@ -14,13 +14,13 @@ import { rotateY } from "../libs/MV.js";
 let gl;
 
 let time = 0;           // Global simulation time in days
-let speed = 1/240.0;     // Speed (how many days added to time on each render pass
+let speed = 1/144.0;     // Speed (how many days added to time on each render pass
 let mode;               // Drawing mode (gl.LINES or gl.TRIANGLES)
 let animation = true;   // Animation is running
 
 
 const TRAJECTORY_RADIUS = 40;
-const GRAVITY = 0.0001;
+const GRAVITY = 0.000098;
 
 //scenery constants
 
