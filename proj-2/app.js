@@ -603,6 +603,7 @@ function setup(shaders)
             multTranslation([0, FROG_RADIUS*(2/6), -FROG_RADIUS/4]);
             multScale([1, 1/2, 1]);
             eye();
+            
         popMatrix();
         pushMatrix();
             var croackRate = 0.9 + Math.pow(Math.sin(time*2), 2);
